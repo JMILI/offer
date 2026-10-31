@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offer · 求职工作台</title>
+  <style>
+    :root {
+      --ink: #0f172a;
+      --body: #334155;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --paper: #ffffff;
+      --blue: #1d4ed8;
+      --blue-soft: #eff6ff;
+      --teal: #0f766e;
+      --teal-soft: #f0fdfa;
+      --grad: linear-gradient(145deg, #0f172a 0%, #1e3a8a 48%, #1d4ed8 100%);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+      color: var(--body);
+      background:
+        radial-gradient(1200px 600px at 10% -10%, #dbeafe 0%, transparent 55%),
+        radial-gradient(900px 500px at 100% 0%, #ccfbf1 0%, transparent 50%),
+        #f1f5f9;
+    }
+    .shell {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 48px 24px 64px;
+    }
+    .hero {
+      margin-bottom: 36px;
+    }
+    .hero-kicker {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--blue);
+      background: var(--blue-soft);
+      padding: 4px 10px;
+      border-radius: 999px;
+      margin-bottom: 14px;
+    }
+    .hero h1 {
+      font-size: clamp(28px, 4vw, 40px);
+      line-height: 1.15;
+      color: var(--ink);
+      letter-spacing: -0.02em;
+      margin-bottom: 10px;
+    }
+    .hero p {
+      max-width: 560px;
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--muted);
+    }
+    .modules {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 20px;
+    }
+    @media (max-width: 760px) {
+      .modules { grid-template-columns: 1fr; }
+    }
+    .card {
+      display: flex;
+      flex-direction: column;
+      min-height: 240px;
+      padding: 28px 26px;
+      border-radius: 18px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+      text-decoration: none;
+      color: inherit;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    }
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.1);
+      border-color: #bfdbfe;
+    }
+    .card-badge {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+      margin-bottom: 18px;
+    }
+    .card.resume .card-badge { background: var(--blue-soft); }
+    .card.jobs .card-badge { background: var(--teal-soft); }
+    .card h2 {
+      font-size: 22px;
+      color: var(--ink);
+      margin-bottom: 8px;
+    }
+    .card p {
+      flex: 1;
+      font-size: 14px;
+      line-height: 1.65;
+      color: var(--muted);
+    }
+    .card-cta {
+      margin-top: 18px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--blue);
+    }
+    .card.jobs .card-cta { color: var(--teal); }
+    .foot {
+      margin-top: 28px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="hero">
+      <div class="hero-kicker">Offer Workbench</div>
+      <h1>求职工作台</h1>
+      <p>两个模块独立使用：编辑并保存简历版本，或收集公司岗位并以表格管理投递邮件（测试发信与正式发信分离）。</p>
+    </header>
+
+    <section class="modules">
+      <a class="card resume" href="/resume.html">
+        <div class="card-badge">📄</div>
+        <h2>编辑保存简历</h2>
+        <p>预览排版、在线编辑、导出 PDF，并将带样式的版本保存到数据库，支持查看历史简历。</p>
+        <div class="card-cta">进入简历模块 →</div>
+      </a>
+
+      <a class="card jobs" href="/jobs.html">
+        <div class="card-badge">🏢</div>
+        <h2>收集公司岗位信息</h2>
+        <p>以表格维护岗位、公司性质、联系方式与邮件正文；可「测试发信」到本人邮箱，或单独「发送邮件」给公司。</p>
+        <div class="card-cta">进入岗位模块 →</div>
+      </a>
+    </section>
+
+    <p class="foot">默认服务：http://127.0.0.1:4000/ · 启动后请先配置 SMTP 再使用发信功能</p>
+  </div>
+</body>
+</html>

@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>收集公司岗位信息 · Offer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #0c1a1f;
+      --body: #2a3f47;
+      --muted: #5a727c;
+      --line: #d5e2e8;
+      --paper: #f7fbfc;
+      --card: #ffffff;
+      --teal: #0f766e;
+      --teal-deep: #0b4f4a;
+      --amber: #b45309;
+      --danger: #b91c1c;
+      --ok: #15803d;
+      --sky: #0369a1;
+      --chip: #e6f4f1;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "DM Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--body);
+      background:
+        radial-gradient(1200px 500px at 10% -10%, #d8f3ee 0%, transparent 55%),
+        radial-gradient(900px 420px at 100% 0%, #e8f0f8 0%, transparent 50%),
+        linear-gradient(180deg, #eef6f4 0%, #f4f7f9 40%, #eef2f5 100%);
+      min-height: 100vh;
+    }
+    .topbar {
+      position: sticky; top: 0; z-index: 50;
+      background: linear-gradient(120deg, #0b3d3a 0%, #0f4f4a 45%, #134e6f 100%);
+      color: #e8f4f2;
+      box-shadow: 0 8px 28px rgba(11, 61, 58, 0.28);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .topbar-inner {
+      padding: 12px 16px;
+      display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px;
+    }
+    .brand {
+      font-weight: 700; color: #fff; margin-right: 6px;
+      letter-spacing: 0.02em; font-size: 15px;
+    }
+    .topbar a, .topbar button {
+      border: 1px solid rgba(255,255,255,0.22);
+      background: rgba(255,255,255,0.06);
+      color: #e8f4f2;
+      border-radius: 8px;
+      padding: 6px 11px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background .15s ease, transform .12s ease;
+    }
+    .topbar a:hover, .topbar button:hover { background: rgba(255,255,255,0.14); }
+    .topbar button.primary { background: #fff; color: var(--teal-deep); border-color: #fff; }
+    .topbar button.teal { background: #14b8a6; border-color: #14b8a6; color: #042f2e; }
+    .status { font-size: 12px; color: #a7f3d0; margin-left: auto; max-width: 42%; text-align: right; }
+    .status.warn { color: #fde68a; }
+    .status.err { color: #fecaca; }
+
+    .wrap { padding: 14px 16px 24px; }
+    .hint {
+      background: linear-gradient(135deg, rgba(255,255,255,0.92), rgba(232,246,243,0.95));
+      border: 1px solid #c5e5df;
+      color: #134e4a;
+      border-radius: 12px;
+      padding: 11px 14px;
+      font-size: 12.5px;
+      line-height: 1.55;
+      margin-bottom: 12px;
+      box-shadow: 0 6px 18px rgba(15, 118, 110, 0.06);
+    }
+    .hint code {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11.5px;
+      background: var(--chip);
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+
+    .table-scroll {
+      overflow: auto;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: 0 14px 40px rgba(12, 26, 31, 0.07);
+      max-height: calc(100vh - 150px);
+    }
+    table {
+      border-collapse: separate;
+      border-spacing: 0;
+      width: 100%;
+      min-width: 1520px;
+      table-layout: fixed;
+      font-size: 12px;
+    }
+    th, td {
+      border-bottom: 1px solid #e8eef1;
+      border-right: 1px solid #f0f5f7;
+      padding: 7px 8px;
+      vertical-align: middle;
+      text-align: left;
+    }
+    th {
+      position: sticky; top: 0; z-index: 3;
+      background: linear-gradient(180deg, #0f3f3c, #0c3330);
+      color: #ecfdf8;
+      font-weight: 700;
+      white-space: nowrap;
+      font-size: 11px;
+      letter-spacing: 0.02em;
+    }
+    tr:nth-child(even) td { background: #fafcfc; }
+    tr:hover td { background: #eef8f6; }
+    tr.flash td { animation: flash 1.2s ease; }
+    @keyframes flash {
+      0%, 100% { background: inherit; }
+      30% { background: #ccfbf1; }
+    }
+
+    input.ellip, select.ellip {
+      width: 100%; max-width: 100%;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      border: 1px solid transparent; border-radius: 6px;
+      padding: 4px 6px; font: inherit; color: var(--ink); background: transparent;
+    }
+    input.ellip:hover, input.ellip:focus, select.ellip:hover, select.ellip:focus {
+      border-color: #b7d4ce; background: #fff;
+    }
+    .clamp {
+      display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical;
+      overflow: hidden; font-size: 11.5px; line-height: 1.4; color: var(--body);
+      cursor: help; word-break: break-word; white-space: pre-line; min-height: 2.6em;
+    }
+    .contact-cell { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .contact-cell .lbl {
+      font-size: 9.5px; color: var(--muted); font-weight: 700; letter-spacing: 0.02em;
+    }
+    .contact-cell input { font-size: 11px; padding: 2px 4px; }
+    .src-link {
+      color: var(--teal); font-weight: 700; text-decoration: none;
+      display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .src-link:hover { text-decoration: underline; color: var(--teal-deep); }
+    .scale-cell { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .scale-people { font-weight: 700; color: var(--ink); font-size: 12px; }
+    .scale-list {
+      font-size: 10.5px; color: var(--muted);
+      background: var(--chip); border-radius: 999px; padding: 1px 7px; width: fit-content;
+    }
+    .resume-cell { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+    .resume-actions { display: flex; flex-wrap: wrap; gap: 4px; }
+    .btn-mini {
+      border: none; background: #e2eef0; color: #334155;
+      border-radius: 5px; padding: 3px 8px; font-size: 11px; font-weight: 700; cursor: pointer;
+    }
+    .btn-mini.teal { background: #ccfbf1; color: #0f766e; }
+    .btn-mini.sky { background: #e0f2fe; color: #0369a1; }
+    .chk {
+      display: flex; align-items: center; justify-content: center; gap: 4px;
+      font-size: 11px; font-weight: 700;
+    }
+    .chk input { width: 15px; height: 15px; accent-color: var(--teal); cursor: pointer; }
+    .chk.on { color: var(--ok); }
+    .chk.off { color: var(--muted); }
+
+    .c-act, .c-pipe { position: sticky; background: #fff; z-index: 2; }
+    .c-act { right: 220px; box-shadow: -6px 0 10px rgba(15,23,42,0.04); }
+    th.c-act, th.c-pipe { background: #0c3330; box-shadow: none; }
+    .c-pipe { right: 0; min-width: 220px; box-shadow: -4px 0 8px rgba(15,23,42,0.03); }
+    tr:hover td.c-act, tr:hover td.c-pipe { background: #eef8f6; }
+    .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+    .btn-row button {
+      border: none; border-radius: 6px; padding: 5px 4px;
+      font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap;
+    }
+    .btn-test { background: #fef3c7; color: var(--amber); }
+    .btn-send { background: #dbeafe; color: var(--sky); }
+    .btn-save { background: #dcfce7; color: var(--ok); }
+    .btn-del { background: #fee2e2; color: var(--danger); }
+    .tag {
+      display: inline-block; padding: 1px 6px; border-radius: 999px;
+      font-size: 10px; font-weight: 700;
+    }
+    .tag-yes { background: #fee2e2; color: #b91c1c; }
+    .tag-no { background: #dcfce7; color: #15803d; }
+    .pipe-grid {
+      display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; min-width: 200px;
+    }
+    .pipe-item {
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      font-size: 10px; color: var(--muted); font-weight: 700;
+    }
+
+    .modal-mask {
+      display: none; position: fixed; inset: 0; z-index: 100;
+      background: rgba(12, 26, 31, 0.55);
+      backdrop-filter: blur(2px);
+      align-items: center; justify-content: center; padding: 16px;
+    }
+    .modal-mask.open { display: flex; }
+    .modal {
+      width: min(560px, 100%);
+      background: #fff; border-radius: 14px; overflow: hidden;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.28);
+      display: flex; flex-direction: column;
+      max-height: calc(100vh - 32px);
+    }
+    .modal.xl {
+      width: min(1100px, 98vw);
+      height: calc(100vh - 32px);
+      max-height: calc(100vh - 32px);
+    }
+    .modal-h {
+      padding: 12px 16px;
+      background: linear-gradient(120deg, #0b3d3a, #134e6f);
+      color: #fff; font-weight: 700;
+      display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
+    }
+    .modal-h button { border: none; background: transparent; color: #fff; font-size: 18px; cursor: pointer; }
+    .modal-b {
+      padding: 16px; font-size: 13px; line-height: 1.6; color: var(--body);
+      flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; overflow: auto;
+    }
+    .modal-b .meta {
+      font-size: 12px; color: var(--muted);
+      background: #f3faf8; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px;
+    }
+    .modal-b input, .modal-b textarea {
+      width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 12px; font: inherit;
+    }
+    .modal-b textarea {
+      flex: 1; min-height: 420px; line-height: 1.7; resize: vertical; font-size: 14px;
+      white-space: pre-wrap; font-family: "DM Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    .modal.xl .modal-b textarea { min-height: 0; height: 100%; }
+    .modal-f {
+      padding: 12px 16px; border-top: 1px solid var(--line);
+      display: flex; justify-content: flex-end; gap: 8px; flex-shrink: 0;
+    }
+    .modal-f button {
+      border: none; border-radius: 8px; padding: 8px 14px; font-weight: 700; cursor: pointer; font-size: 13px;
+    }
+    .modal-f .cancel { background: #e2e8f0; }
+    .modal-f .ok { background: var(--teal); color: #fff; }
+    .modal-f .regen { background: #ecfdf5; color: #047857; }
+
+    .tip-pop {
+      display: none; position: fixed; z-index: 200;
+      max-width: min(480px, 85vw); max-height: 55vh; overflow: auto;
+      padding: 10px 12px; background: #0c1a1f; color: #f8fafc;
+      border-radius: 8px; font-size: 12px; line-height: 1.5;
+      white-space: pre-wrap; word-break: break-word;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.35); pointer-events: none;
+    }
+    .tip-pop.show { display: block; }
+
+    /* 第一列配色 + 横/竖布局 */
+    .view-tools {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px;
+      margin-bottom: 10px;
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.88);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      font-size: 12px;
+    }
+    .view-tools .group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .view-tools .lbl { color: var(--muted); font-weight: 700; }
+    .seg {
+      display: inline-flex; border: 1px solid #b7d4ce; border-radius: 8px; overflow: hidden;
+    }
+    .seg button {
+      border: none; background: #fff; color: var(--body);
+      padding: 5px 12px; font-size: 12px; font-weight: 700; cursor: pointer;
+    }
+    .seg button.on { background: var(--teal); color: #fff; }
+    .swatches { display: inline-flex; gap: 6px; align-items: center; }
+    .swatch {
+      width: 22px; height: 22px; border-radius: 6px; border: 2px solid transparent;
+      cursor: pointer; padding: 0;
+    }
+    .swatch.on { border-color: var(--ink); box-shadow: 0 0 0 1px #fff inset; }
+    .swatch.none {
+      background: repeating-linear-gradient(45deg, #fff 0 3px, #e2e8f0 3px 6px);
+    }
+    td.c-pos, th.c-pos { transition: background .15s ease; }
+    td.c-pos.bg-amber { background: #fef3c7 !important; }
+    td.c-pos.bg-mint { background: #d1fae5 !important; }
+    td.c-pos.bg-sky { background: #e0f2fe !important; }
+    td.c-pos.bg-rose { background: #ffe4e6 !important; }
+    td.c-pos.bg-lilac { background: #ede9fe !important; }
+    th.c-pos.bg-amber { background: #b45309 !important; }
+    th.c-pos.bg-mint { background: #047857 !important; }
+    th.c-pos.bg-sky { background: #0369a1 !important; }
+    th.c-pos.bg-rose { background: #be123c !important; }
+    th.c-pos.bg-lilac { background: #6d28d9 !important; }
+    .rank-badge {
+      display: inline-block; font-size: 10px; font-weight: 800;
+      color: #0f766e; background: #ccfbf1; border-radius: 4px;
+      padding: 0 5px; margin-right: 4px; vertical-align: middle;
+    }
+
+    .layout-table .vert-list { display: none; }
+    .layout-vert .table-scroll { display: none; }
+    .vert-list { display: flex; flex-direction: column; gap: 12px; }
+    .vert-card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: 0 10px 28px rgba(12, 26, 31, 0.06);
+      overflow: hidden;
+    }
+    .vert-card.flash { animation: flash 1.2s ease; }
+    .vert-head {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+      padding: 10px 14px;
+      background: linear-gradient(120deg, #0b3d3a, #134e6f);
+      color: #ecfdf8; font-weight: 700; font-size: 13px;
+    }
+    .vert-head .rank-badge { background: rgba(255,255,255,0.18); color: #fff; }
+    .vert-grid {
+      display: grid;
+      grid-template-columns: 110px 1fr;
+      gap: 0;
+    }
+    .vert-grid .vk, .vert-grid .vv {
+      padding: 8px 12px;
+      border-bottom: 1px solid #eef3f5;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .vert-grid .vk {
+      font-weight: 700; color: var(--muted);
+      background: #f3faf8;
+      border-right: 1px solid #e8eef1;
+    }
+    .vert-grid .vv { color: var(--ink); word-break: break-word; min-width: 0; }
+    .vert-grid .vv.c-pos.bg-amber { background: #fef3c7; }
+    .vert-grid .vv.c-pos.bg-mint { background: #d1fae5; }
+    .vert-grid .vv.c-pos.bg-sky { background: #e0f2fe; }
+    .vert-grid .vv.c-pos.bg-rose { background: #ffe4e6; }
+    .vert-grid .vv.c-pos.bg-lilac { background: #ede9fe; }
+    .vert-foot {
+      display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start;
+      padding: 10px 12px; background: #fafcfc; border-top: 1px solid var(--line);
+    }
+    .vert-foot .btn-row { width: 180px; }
+    .vert-foot .pipe-grid { flex: 1; min-width: 200px; }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <span class="brand">收集公司岗位信息</span>
+      <a href="/">← 首页</a>
+      <a href="/resume.html">通用简历</a>
+      <button class="primary" type="button" onclick="addRow()">＋ 新增</button>
+      <button class="teal" type="button" onclick="reloadJobs()">刷新</button>
+      <button type="button" onclick="resetEmailDrafts()">按简历+JD 重置邮件</button>
+      <span class="status" id="status"></span>
+    </div>
+  </div>
+
+  <div class="wrap layout-table" id="jobs-root">
+    <div class="hint">
+      列表默认按<strong>推荐度</strong>排序：Rust 优先 → C++ → 贴近 1–3 年经验。
+      「来源」可点进招聘页；「编辑简历」关联本岗位；发信走 SMTP。
+      测试发信 → <code>923749851@qq.com</code>。SMTP：<strong id="smtp-flag">检测中…</strong>
+      博宇利华详卡：<code>company-info/004-成都博宇利华.md</code>。
+    </div>
+
+    <div class="view-tools">
+      <div class="group">
+        <span class="lbl">条目布局</span>
+        <div class="seg">
+          <button type="button" id="btn-layout-table" class="on" onclick="setLayoutMode('table')">横向表格</button>
+          <button type="button" id="btn-layout-vert" onclick="setLayoutMode('vert')">竖向（列名｜内容）</button>
+        </div>
+      </div>
+      <div class="group">
+        <span class="lbl">第一列底色</span>
+        <div class="swatches" id="col-swatches">
+          <button type="button" class="swatch none on" data-color="" title="无底色" onclick="setCol1Color('')"></button>
+          <button type="button" class="swatch" data-color="amber" style="background:#fbbf24" title="琥珀" onclick="setCol1Color('amber')"></button>
+          <button type="button" class="swatch" data-color="mint" style="background:#34d399" title="薄荷" onclick="setCol1Color('mint')"></button>
+          <button type="button" class="swatch" data-color="sky" style="background:#38bdf8" title="天蓝" onclick="setCol1Color('sky')"></button>
+          <button type="button" class="swatch" data-color="rose" style="background:#fb7185" title="玫红" onclick="setCol1Color('rose')"></button>
+          <button type="button" class="swatch" data-color="lilac" style="background:#a78bfa" title="淡紫" onclick="setCol1Color('lilac')"></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th class="c-pos" style="width:7%">岗位</th>
+            <th style="width:6%">公司</th>
+            <th style="width:6%">城市</th>
+            <th style="width:4%">经验</th>
+            <th style="width:5%">来源</th>
+            <th style="width:5%">性质</th>
+            <th style="width:4%">外包</th>
+            <th style="width:5%">规模</th>
+            <th style="width:6%">联系</th>
+            <th style="width:5%">官网</th>
+            <th style="width:8%">岗位描述</th>
+            <th style="width:9%">编辑简历</th>
+            <th style="width:8%">邮件内容</th>
+            <th class="c-act" style="width:9%">操作</th>
+            <th class="c-pipe" style="width:12%">进度</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="vert-list" id="vert-list"></div>
+  </div>
+
+  <div class="tip-pop" id="tip-pop"></div>
+
+  <div class="modal-mask" id="jd-modal">
+    <div class="modal xl">
+      <div class="modal-h">
+        <span>编辑岗位描述 · <span id="jd-modal-title"></span></span>
+        <button type="button" onclick="closeJdModal()">&times;</button>
+      </div>
+      <div class="modal-b">
+        <div class="meta">填写对方 JD / 任职要求，保存后可用「按简历+JD 重置邮件」生成更贴合正文。</div>
+        <textarea id="jd-modal-body" placeholder="粘贴或撰写岗位描述…"></textarea>
+      </div>
+      <div class="modal-f">
+        <button class="cancel" type="button" onclick="closeJdModal()">取消</button>
+        <button class="ok" type="button" onclick="saveJdModal()">保存岗位描述</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-mask" id="mail-modal">
+    <div class="modal xl">
+      <div class="modal-h">
+        <span>编辑投递邮件 · <span id="mail-modal-title"></span></span>
+        <button type="button" onclick="closeMailModal()">&times;</button>
+      </div>
+      <div class="modal-b">
+        <div class="meta" id="mail-modal-meta"></div>
+        <textarea id="mail-modal-body"></textarea>
+      </div>
+      <div class="modal-f">
+        <button class="regen" type="button" onclick="regenMailInModal()">按简历+JD 重新生成</button>
+        <button class="cancel" type="button" onclick="closeMailModal()">取消</button>
+        <button class="ok" type="button" onclick="saveMailModal()">保存正文</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-mask" id="confirm-modal">
+    <div class="modal">
+      <div class="modal-h">
+        <span>确认服务端发送邮件</span>
+        <button type="button" onclick="closeConfirm()">&times;</button>
+      </div>
+      <div class="modal-b">
+        <p>将通过 SMTP <strong>直接发送</strong>（附带选中简历 HTML），收件人：<strong id="confirm-to"></strong></p>
+        <p>公司：<span id="confirm-company"></span> · 岗位：<span id="confirm-position"></span></p>
+        <p>简历版本：<span id="confirm-resume"></span></p>
+        <p>请输入 <code>确认发送</code> 后继续：</p>
+        <input type="text" id="confirm-input" placeholder="确认发送" autocomplete="off">
+      </div>
+      <div class="modal-f">
+        <button class="cancel" type="button" onclick="closeConfirm()">取消</button>
+        <button class="ok" type="button" onclick="doSendCompany()">立即发送</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const TEST_EMAIL = '923749851@qq.com';
+    const LS_LAYOUT = 'offer_jobs_layout';
+    const LS_COL1 = 'offer_jobs_col1_color';
+    let jobs = [];
+    let resumeMap = {}; // jobId -> [{id, version_tag, ...}]
+    let pendingSendId = null;
+    let editingMailId = null;
+    let editingJdId = null;
+    let smtpConfigured = false;
+    let layoutMode = localStorage.getItem(LS_LAYOUT) || 'table';
+    let col1Color = localStorage.getItem(LS_COL1) || '';
+
+    /** 种子推荐序（公司关键词 → 名次）；未命中则用启发式打分 */
+    const SEED_RANK = [
+      ['Corust', 1], ['Stealth', 2], ['RustDesk', 3], ['博宇利华', 4],
+      ['共绩', 5], ['范式', 6], ['商汤', 7], ['CKBA', 8], ['Kong', 9],
+      ['未具名', 10], ['优诺', 11], ['Fintech', 12], ['JTX', 12], ['StepAI', 13],
+    ];
+
+    function recommendScore(job) {
+      const company = String(job.company || '');
+      for (const [key, rank] of SEED_RANK) {
+        if (company.includes(key)) return rank;
+      }
+      const blob = `${job.position || ''} ${job.experience || ''} ${job.job_description || ''}`.toLowerCase();
+      let score = 50;
+      if (/rust/.test(blob)) score -= 20;
+      else if (/c\+\+|c／c\+\+|qt/.test(blob)) score -= 8;
+      if (/实习|intern/.test(blob)) score += 30;
+      if (/1\s*[-–~到至]\s*3|初中级|2\s*[-–~到至]\s*4/.test(blob)) score -= 10;
+      if (/5\s*[-–~到至]\s*8|4\s*年\+|精通/.test(blob)) score += 8;
+      return score;
+    }
+
+    function sortJobsByRecommend(list) {
+      return [...list].sort((a, b) => {
+        const d = recommendScore(a) - recommendScore(b);
+        if (d !== 0) return d;
+        return String(a.company || '').localeCompare(String(b.company || ''), 'zh-CN');
+      });
+    }
+
+    function setLayoutMode(mode) {
+      layoutMode = mode === 'vert' ? 'vert' : 'table';
+      localStorage.setItem(LS_LAYOUT, layoutMode);
+      const root = document.getElementById('jobs-root');
+      root.classList.toggle('layout-vert', layoutMode === 'vert');
+      root.classList.toggle('layout-table', layoutMode === 'table');
+      document.getElementById('btn-layout-table').classList.toggle('on', layoutMode === 'table');
+      document.getElementById('btn-layout-vert').classList.toggle('on', layoutMode === 'vert');
+      render();
+    }
+
+    function setCol1Color(color) {
+      col1Color = color || '';
+      localStorage.setItem(LS_COL1, col1Color);
+      render();
+    }
+
+    function col1Class() {
+      return col1Color ? `c-pos bg-${col1Color}` : 'c-pos';
+    }
+
+    function api(path, opts) {
+      return fetch(path, {
+        headers: { 'Content-Type': 'application/json', ...(opts && opts.headers || {}) },
+        ...opts,
+      }).then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || res.statusText || '请求失败');
+        return data;
+      });
+    }
+
+    function setStatus(msg, kind) {
+      const el = document.getElementById('status');
+      el.textContent = msg || '';
+      el.className = 'status' + (kind === 'warn' ? ' warn' : kind === 'err' ? ' err' : '');
+    }
+
+    function defaultEmailBody(job) {
+      const company = (job.company || '贵公司').trim();
+      const position = (job.position || '相关岗位').trim();
+      const city = (job.city_mode || '').trim();
+      let jd = (job.job_description || '').trim();
+      if (jd.length > 280) jd = jd.slice(0, 280) + '…';
+      const jdBlock = jd
+        ? `应聘岗位：${position}\n岗位要点：${jd}`
+        : `应聘岗位：${position}\n（岗位具体要求待与贵司进一步对齐。）`;
+      const points = [
+        '1. 约 2 年 C++ 工程经验，深耕二进制协议解析、性能优化与系统侧开发，可快速迁移到 Rust 生产实践；',
+        '2. 代表战绩：将异构数据迁移吞吐提升约 6 倍（约 500 万条/1h → 约 10min）；',
+        '3. 近期用 Rust 完成异步 / FFI 相关实践（含 TUI 调度器等），熟悉所有权模型与跨语言边界；',
+      ];
+      let n = 4;
+      if (city) { points.push(`${n}. 就职城市/方式意向：${city}；`); n += 1; }
+      points.push(`${n}. 工作地点灵活，可按贵司要求坐班或远程；简历 PDF 已作为附件随本邮件发送。`);
+      return [
+        `尊敬的${company}招聘负责人 / HR 您好：`,
+        '',
+        `我是李江敏，计算机相关专业硕士，求职方向为 Rust / C++ 底层与系统开发。获悉贵司在招「${position}」，对照岗位要求后认为高度契合，特此投递，恳请审阅。`,
+        '',
+        jdBlock,
+        '',
+        '【匹配说明】',
+        ...points,
+        '',
+        '期待有机会进一步沟通，谢谢！',
+        '',
+        '此致',
+        '敬礼',
+        '',
+        '李江敏',
+        '电话：17691086153',
+        '邮箱：923749851@qq.com',
+      ].join('\n');
+    }
+
+    function ensureBody(job) {
+      const j = { ...job, job_description: job.job_description || '' };
+      if (j.email_body && String(j.email_body).trim()) return j;
+      return { ...j, email_body: defaultEmailBody(j) };
+    }
+
+    function escapeHtml(s) {
+      return String(s ?? '')
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    function escapeAttr(s) {
+      return escapeHtml(s).replace(/'/g, '&#39;');
+    }
+
+    function tipBind(el, text) {
+      if (!el) return;
+      const full = String(text || '').trim();
+      if (!full) return;
+      el.addEventListener('mouseenter', (e) => showTip(full, e.clientX, e.clientY));
+      el.addEventListener('mousemove', (e) => moveTip(e.clientX, e.clientY));
+      el.addEventListener('mouseleave', hideTip);
+    }
+    function showTip(text, x, y) {
+      const tip = document.getElementById('tip-pop');
+      tip.textContent = text;
+      tip.classList.add('show');
+      moveTip(x, y);
+    }
+    function moveTip(x, y) {
+      const tip = document.getElementById('tip-pop');
+      const pad = 14;
+      let left = x + pad, top = y + pad;
+      const rect = tip.getBoundingClientRect();
+      if (left + rect.width > window.innerWidth - 8) left = x - rect.width - pad;
+      if (top + rect.height > window.innerHeight - 8) top = y - rect.height - pad;
+      tip.style.left = Math.max(8, left) + 'px';
+      tip.style.top = Math.max(8, top) + 'px';
+    }
+    function hideTip() {
+      document.getElementById('tip-pop').classList.remove('show');
+    }
+
+    function selectedResumeLabel(job) {
+      const list = resumeMap[job.id] || [];
+      const sid = job.selected_resume_id;
+      const hit = list.find((x) => x.id === sid) || list[0];
+      return hit ? `${hit.version_tag}` : '（未创建）';
+    }
+
+    function resumeOptionsHtml(job) {
+      const list = resumeMap[job.id] || [];
+      if (!list.length) {
+        return `<option value="">暂无版本 — 请先编辑简历</option>`;
+      }
+      const sid = job.selected_resume_id || list[0].id;
+      return list.map((r) =>
+        `<option value="${r.id}" ${Number(sid) === Number(r.id) ? 'selected' : ''}>${escapeHtml(r.version_tag)} · ${escapeHtml(formatTime(r.saved_at))}</option>`
+      ).join('');
+    }
+
+    function formatTime(raw) {
+      return String(raw || '').replace('T', ' ').slice(0, 16);
+    }
+
+    function sourceCellHtml(j) {
+      const srcUrl = (j.source_url || '').trim();
+      const srcLabel = j.source || '来源';
+      if (srcUrl) {
+        return `<a class="src-link tippable" href="${escapeAttr(srcUrl)}" target="_blank" rel="noopener" data-tip="${escapeAttr(srcUrl)}">${escapeHtml(srcLabel)}</a>
+           <input type="hidden" data-f="source" value="${escapeAttr(j.source)}">
+           <input class="ellip" data-f="source_url" value="${escapeAttr(srcUrl)}" placeholder="招聘链接" title="可改链接">`;
+      }
+      return `<input class="ellip tippable" data-f="source" value="${escapeAttr(j.source)}" data-tip="${escapeAttr(j.source)}">
+           <input class="ellip" data-f="source_url" value="" placeholder="招聘信息链接">`;
+    }
+
+    function outTagHtml(j) {
+      return j.is_outsourcing
+        ? '<span class="tag tag-yes">外包</span>'
+        : '<span class="tag tag-no">正规</span>';
+    }
+
+    function actionButtonsHtml(j) {
+      return `<div class="btn-row">
+        <button class="btn-save" type="button" onclick="saveRow(${j.id})">保存</button>
+        <button class="btn-del" type="button" onclick="deleteRow(${j.id})">删除</button>
+        <button class="btn-test" type="button" onclick="testSend(${j.id})">测试发信</button>
+        <button class="btn-send" type="button" onclick="askSendCompany(${j.id})">发送邮件</button>
+      </div>`;
+    }
+
+    function pipeGridHtml(j) {
+      return `<div class="pipe-grid">
+        ${pipeChk(j, 'status_applied', '已投递')}
+        ${pipeChk(j, 'status_written_test', '笔试')}
+        ${pipeChk(j, 'status_interview1', '一面')}
+        ${pipeChk(j, 'status_interview2', '二面')}
+        ${pipeChk(j, 'status_offer', 'Offer')}
+      </div>`;
+    }
+
+    function bindTips(root) {
+      if (!root) return;
+      root.querySelectorAll('.tippable').forEach((el) => {
+        tipBind(el, el.getAttribute('data-tip') || el.value || el.textContent);
+      });
+      root.querySelectorAll('input.ellip').forEach((el) => {
+        el.addEventListener('input', () => el.setAttribute('data-tip', el.value));
+      });
+    }
+
+    function renderTable() {
+      const tb = document.getElementById('tbody');
+      tb.innerHTML = jobs.map((j, idx) => {
+        const body = j.email_body || '';
+        const jd = j.job_description || '';
+        const rank = idx + 1;
+        return `
+        <tr data-id="${j.id}" id="job-${j.id}">
+          <td class="${col1Class()}">
+            <span class="rank-badge">#${rank}</span>
+            <input class="ellip tippable" data-f="position" value="${escapeAttr(j.position)}" data-tip="${escapeAttr(j.position)}">
+          </td>
+          <td><input class="ellip tippable" data-f="company" value="${escapeAttr(j.company)}" data-tip="${escapeAttr(j.company)}"></td>
+          <td><input class="ellip tippable" data-f="city_mode" value="${escapeAttr(j.city_mode)}" data-tip="${escapeAttr(j.city_mode)}"></td>
+          <td><input class="ellip tippable" data-f="experience" value="${escapeAttr(j.experience)}" data-tip="${escapeAttr(j.experience)}"></td>
+          <td>${sourceCellHtml(j)}</td>
+          <td><input class="ellip tippable" data-f="company_nature" value="${escapeAttr(j.company_nature)}" data-tip="${escapeAttr(j.company_nature)}"></td>
+          <td>
+            <select class="ellip" data-f="is_outsourcing">
+              <option value="false" ${!j.is_outsourcing ? 'selected' : ''}>正规</option>
+              <option value="true" ${j.is_outsourcing ? 'selected' : ''}>外包</option>
+            </select>
+            <div style="margin-top:3px">${outTagHtml(j)}</div>
+          </td>
+          <td>
+            <div class="scale-cell">
+              <input class="ellip tippable scale-people" data-f="headcount" value="${escapeAttr(j.headcount)}" data-tip="${escapeAttr(j.headcount)}" placeholder="人数">
+              <input class="ellip tippable" data-f="listing_status" value="${escapeAttr(j.listing_status || '未上市')}" data-tip="${escapeAttr(j.listing_status)}" placeholder="上市情况">
+              <span class="scale-list">${escapeHtml(j.listing_status || '未上市')}</span>
+            </div>
+          </td>
+          <td>
+            <div class="contact-cell">
+              <span class="lbl">邮件</span>
+              <input class="ellip tippable" data-f="email" value="${escapeAttr(j.email)}" data-tip="${escapeAttr(j.email)}" placeholder="公司邮箱">
+              <span class="lbl">微信</span>
+              <input class="ellip tippable" data-f="hr_wechat" value="${escapeAttr(j.hr_wechat)}" data-tip="${escapeAttr(j.hr_wechat)}" placeholder="HR微信">
+            </div>
+          </td>
+          <td><input class="ellip tippable" data-f="website" value="${escapeAttr(j.website)}" data-tip="${escapeAttr(j.website)}"></td>
+          <td>
+            <div class="jd-cell">
+              <div class="clamp tippable" data-tip="${escapeAttr(jd)}">${escapeHtml(jd || '（点击编辑）')}</div>
+              <textarea data-f="job_description" hidden>${escapeHtml(jd)}</textarea>
+              <button class="btn-mini" type="button" onclick="openJdModal(${j.id})">编辑描述</button>
+            </div>
+          </td>
+          <td>
+            <div class="resume-cell">
+              <select class="ellip" data-resume-select="${j.id}" onchange="onSelectResume(${j.id}, this.value)">
+                ${resumeOptionsHtml(j)}
+              </select>
+              <div class="resume-actions">
+                <button class="btn-mini teal" type="button" onclick="editResume(${j.id})">编辑简历</button>
+                <button class="btn-mini sky" type="button" onclick="viewResumeWeb(${j.id})">网页</button>
+                <button class="btn-mini" type="button" onclick="viewResumePdf(${j.id})">PDF</button>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="mail-cell">
+              <div class="clamp tippable" data-tip="${escapeAttr(body)}">${escapeHtml(body || '（空）')}</div>
+              <textarea data-f="email_body" hidden>${escapeHtml(body)}</textarea>
+              <button class="btn-mini" type="button" onclick="openMailModal(${j.id})">编辑正文</button>
+            </div>
+          </td>
+          <td class="c-act">${actionButtonsHtml(j)}</td>
+          <td class="c-pipe">${pipeGridHtml(j)}</td>
+        </tr>`;
+      }).join('');
+      bindTips(tb);
+    }
+
+    function renderVert() {
+      const box = document.getElementById('vert-list');
+      box.innerHTML = jobs.map((j, idx) => {
+        const body = j.email_body || '';
+        const jd = j.job_description || '';
+        const rank = idx + 1;
+        const row = (k, vHtml) =>
+          `<div class="vk">${k}</div><div class="vv">${vHtml}</div>`;
+        return `
+        <article class="vert-card" data-id="${j.id}" id="job-${j.id}">
+          <div class="vert-head">
+            <span class="rank-badge">推荐 #${rank}</span>
+            <span>${escapeHtml(j.company || '')}</span>
+            <span style="opacity:.85;font-weight:600">· ${escapeHtml(j.position || '')}</span>
+          </div>
+          <div class="vert-grid">
+            <div class="vk">岗位</div>
+            <div class="vv ${col1Class()}">
+              <input class="ellip tippable" data-f="position" value="${escapeAttr(j.position)}" data-tip="${escapeAttr(j.position)}">
+            </div>
+            ${row('公司', `<input class="ellip tippable" data-f="company" value="${escapeAttr(j.company)}" data-tip="${escapeAttr(j.company)}">`)}
+            ${row('城市', `<input class="ellip tippable" data-f="city_mode" value="${escapeAttr(j.city_mode)}" data-tip="${escapeAttr(j.city_mode)}">`)}
+            ${row('经验', `<input class="ellip tippable" data-f="experience" value="${escapeAttr(j.experience)}" data-tip="${escapeAttr(j.experience)}">`)}
+            ${row('来源', sourceCellHtml(j))}
+            ${row('性质', `<input class="ellip tippable" data-f="company_nature" value="${escapeAttr(j.company_nature)}" data-tip="${escapeAttr(j.company_nature)}">`)}
+            ${row('外包', `<select class="ellip" data-f="is_outsourcing">
+              <option value="false" ${!j.is_outsourcing ? 'selected' : ''}>正规</option>
+              <option value="true" ${j.is_outsourcing ? 'selected' : ''}>外包</option>
+            </select> ${outTagHtml(j)}`)}
+            ${row('规模', `<div class="scale-cell">
+              <input class="ellip tippable scale-people" data-f="headcount" value="${escapeAttr(j.headcount)}" data-tip="${escapeAttr(j.headcount)}" placeholder="人数">
+              <input class="ellip tippable" data-f="listing_status" value="${escapeAttr(j.listing_status || '未上市')}" data-tip="${escapeAttr(j.listing_status)}" placeholder="上市情况">
+            </div>`)}
+            ${row('联系', `<div class="contact-cell">
+              <span class="lbl">邮件</span>
+              <input class="ellip tippable" data-f="email" value="${escapeAttr(j.email)}" data-tip="${escapeAttr(j.email)}" placeholder="公司邮箱">
+              <span class="lbl">微信</span>
+              <input class="ellip tippable" data-f="hr_wechat" value="${escapeAttr(j.hr_wechat)}" data-tip="${escapeAttr(j.hr_wechat)}" placeholder="HR微信">
+            </div>`)}
+            ${row('官网', `<input class="ellip tippable" data-f="website" value="${escapeAttr(j.website)}" data-tip="${escapeAttr(j.website)}">`)}
+            ${row('岗位描述', `<div class="jd-cell">
+              <div class="clamp tippable" data-tip="${escapeAttr(jd)}">${escapeHtml(jd || '（点击编辑）')}</div>
+              <textarea data-f="job_description" hidden>${escapeHtml(jd)}</textarea>
+              <button class="btn-mini" type="button" onclick="openJdModal(${j.id})">编辑描述</button>
+            </div>`)}
+            ${row('编辑简历', `<div class="resume-cell">
+              <select class="ellip" data-resume-select="${j.id}" onchange="onSelectResume(${j.id}, this.value)">
+                ${resumeOptionsHtml(j)}
+              </select>
+              <div class="resume-actions">
+                <button class="btn-mini teal" type="button" onclick="editResume(${j.id})">编辑简历</button>
+                <button class="btn-mini sky" type="button" onclick="viewResumeWeb(${j.id})">网页</button>
+                <button class="btn-mini" type="button" onclick="viewResumePdf(${j.id})">PDF</button>
+              </div>
+            </div>`)}
+            ${row('邮件内容', `<div class="mail-cell">
+              <div class="clamp tippable" data-tip="${escapeAttr(body)}">${escapeHtml(body || '（空）')}</div>
+              <textarea data-f="email_body" hidden>${escapeHtml(body)}</textarea>
+              <button class="btn-mini" type="button" onclick="openMailModal(${j.id})">编辑正文</button>
+            </div>`)}
+          </div>
+          <div class="vert-foot">
+            ${actionButtonsHtml(j)}
+            ${pipeGridHtml(j)}
+          </div>
+        </article>`;
+      }).join('');
+      bindTips(box);
+    }
+
+    function render() {
+      const root = document.getElementById('jobs-root');
+      root.classList.toggle('layout-vert', layoutMode === 'vert');
+      root.classList.toggle('layout-table', layoutMode === 'table');
+      document.getElementById('btn-layout-table').classList.toggle('on', layoutMode === 'table');
+      document.getElementById('btn-layout-vert').classList.toggle('on', layoutMode === 'vert');
+      document.querySelectorAll('#col-swatches .swatch').forEach((el) => {
+        el.classList.toggle('on', (el.getAttribute('data-color') || '') === col1Color);
+      });
+      const thPos = document.querySelector('th.c-pos');
+      if (thPos) thPos.className = col1Class();
+
+      if (layoutMode === 'vert') {
+        document.getElementById('tbody').innerHTML = '';
+        renderVert();
+      } else {
+        document.getElementById('vert-list').innerHTML = '';
+        renderTable();
+      }
+
+      if (location.hash.startsWith('#job-')) {
+        const el = document.querySelector(location.hash);
+        if (el) {
+          el.classList.add('flash');
+          el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
+      }
+    }
+
+    function pipeChk(j, field, label) {
+      const on = !!j[field];
+      return `<label class="pipe-item ${on ? 'on' : 'off'}">
+        <input type="checkbox" data-f="${field}" ${on ? 'checked' : ''} onchange="saveRow(${j.id})">
+        <span>${label}</span>
+      </label>`;
+    }
+
+    function readRow(id) {
+      const root = document.querySelector(`[data-id="${id}"]`);
+      if (!root) return null;
+      const get = (f) => {
+        const el = root.querySelector(`[data-f="${f}"]`);
+        if (!el) return '';
+        if (el.type === 'checkbox') return el.checked;
+        return el.value;
+      };
+      const sel = root.querySelector(`[data-resume-select="${id}"]`);
+      const selected = sel && sel.value ? Number(sel.value) : null;
+      return {
+        position: get('position'),
+        company: get('company'),
+        city_mode: get('city_mode'),
+        experience: get('experience'),
+        source: get('source'),
+        source_url: get('source_url'),
+        company_nature: get('company_nature'),
+        is_outsourcing: get('is_outsourcing') === 'true',
+        headcount: get('headcount'),
+        listing_status: get('listing_status'),
+        email: get('email'),
+        website: get('website'),
+        hr_wechat: get('hr_wechat'),
+        job_description: get('job_description'),
+        email_body: get('email_body'),
+        selected_resume_id: selected || undefined,
+        status_applied: !!get('status_applied'),
+        status_written_test: !!get('status_written_test'),
+        status_interview1: !!get('status_interview1'),
+        status_interview2: !!get('status_interview2'),
+        status_offer: !!get('status_offer'),
+      };
+    }
+
+    async function loadResumesForJob(id) {
+      try {
+        const list = await api('/api/jobs/' + id + '/resumes');
+        resumeMap[id] = list || [];
+        // 默认选最新
+        const job = jobs.find((x) => x.id === id);
+        if (job && !job.selected_resume_id && resumeMap[id].length) {
+          job.selected_resume_id = resumeMap[id][0].id;
+        }
+      } catch (_) {
+        resumeMap[id] = [];
+      }
+    }
+
+    async function reloadJobs() {
+      setStatus('加载中…', 'warn');
+      try {
+        const health = await api('/api/health');
+        smtpConfigured = !!health.smtp_configured;
+        document.getElementById('smtp-flag').textContent = smtpConfigured
+          ? '已配置 ✓'
+          : '未配置（发信前请填 .env）';
+
+        let list = await api('/api/jobs');
+        list = sortJobsByRecommend(list.map(ensureBody));
+        jobs = list;
+        await Promise.all(jobs.map((j) => loadResumesForJob(j.id)));
+        render();
+        setStatus(`已加载 ${jobs.length} 条 · 按推荐度排序`);
+      } catch (e) {
+        setStatus(e.message, 'err');
+      }
+    }
+
+    async function saveRow(id) {
+      const body = readRow(id);
+      if (!body) return;
+      if (!body.email_body || !body.email_body.trim()) {
+        body.email_body = defaultEmailBody(body);
+      }
+      setStatus('保存中…', 'warn');
+      try {
+        const updated = ensureBody(await api('/api/jobs/' + id, { method: 'PUT', body: JSON.stringify(body) }));
+        const i = jobs.findIndex((x) => x.id === id);
+        if (i >= 0) jobs[i] = updated;
+        jobs = sortJobsByRecommend(jobs);
+        await loadResumesForJob(id);
+        render();
+        setStatus('已保存');
+      } catch (e) {
+        setStatus(e.message, 'err');
+      }
+    }
+
+    async function addRow() {
+      const blank = ensureBody({
+        position: '新岗位', company: '新公司', city_mode: '未说明', experience: '未说明',
+        source: '手工录入', source_url: '', company_nature: '未说明', is_outsourcing: false,
+        headcount: '未说明', listing_status: '未上市', email: '', website: '', hr_wechat: '',
+        job_description: '', email_body: '',
+      });
+      setStatus('新增中…', 'warn');
+      try {
+        const created = ensureBody(await api('/api/jobs', { method: 'POST', body: JSON.stringify(blank) }));
+        jobs.unshift(created);
+        resumeMap[created.id] = [];
+        jobs = sortJobsByRecommend(jobs);
+        render();
+        setStatus('已新增');
+      } catch (e) {
+        setStatus(e.message, 'err');
+      }
+    }
+
+    async function deleteRow(id) {
+      if (!confirm('确定删除该岗位？')) return;
+      try {
+        await api('/api/jobs/' + id, { method: 'DELETE' });
+        jobs = jobs.filter((x) => x.id !== id);
+        delete resumeMap[id];
+        render();
+        setStatus('已删除');
+      } catch (e) {
+        setStatus(e.message, 'err');
+      }
+    }
+
+    async function onSelectResume(jobId, resumeId) {
+      if (!resumeId) return;
+      try {
+        const updated = await api('/api/jobs/' + jobId + '/selected-resume', {
+          method: 'PUT',
+          body: JSON.stringify({ resume_id: Number(resumeId) }),
+        });
+        const i = jobs.findIndex((x) => x.id === jobId);
+        if (i >= 0) jobs[i] = ensureBody(updated);
+        setStatus('已切换简历版本');
+      } catch (e) {
+        setStatus(e.message, 'err');
+      }
+    }
+
+    async function editResume(jobId) {
+      const job = jobs.find((x) => x.id === jobId) || readRow(jobId);
+      if (!job) return;
+      setStatus('准备简历…', 'warn');
+      try {
+        const resp = await api('/api/jobs/' + jobId + '/ensure-resume', { method: 'POST' });
+        location.href = `/resume.html?id=${resp.resume_id}&job_id=${jobId}&company=${encodeURIComponent(resp.company || job.company || '')}`;
+      } catch (e) {
+        const msg = String(e.message || '');
+        if (msg.includes('NO_TEMPLATE') || msg.includes('通用')) {
+          // 无模板：打开简历页，用当前默认内容保存为该公司第一版
+          if (confirm('尚未找到「通用」简历模板。将打开简历编辑页，请直接「保存到数据库」（公司已预填），即可关联本岗位。是否继续？')) {
+            location.href = `/resume.html?job_id=${jobId}&company=${encodeURIComponent(job.company || '')}`;
+          }
+        } else {
+          setStatus(msg, 'err');
+        }
+      }
+    }
+
+    function currentResumeId(jobId) {
+      const job = jobs.find((x) => x.id === jobId);
+      const sel = document.querySelector(`[data-resume-select="${jobId}"]`);
+      if (sel && sel.value) return Number(sel.value);
+      if (job && job.selected_resume_id) return job.selected_resume_id;
+      const list = resumeMap[jobId] || [];
+      return list.length ? list[0].id : null;
+    }
+
+    function viewResumeWeb(jobId) {
+      const rid = currentResumeId(jobId);
+      if (!rid) {
+        setStatus('请先编辑/创建简历', 'err');
+        return;
+      }
+      window.open(`/resume.html?id=${rid}&job_id=${jobId}&view=1`, '_blank');
+    }
+
+    function viewResumePdf(jobId) {
+      const rid = currentResumeId(jobId);
+      if (!rid) {
+        setStatus('请先编辑/创建简历并保存（保存时会自动生成 PDF）', 'err');
+        return;
+      }
+      // 直接打开服务端 PDF（不弹本机另存为）；没有则提示去保存
+      window.open(`/api/resumes/${rid}/pdf`, '_blank');
+    }
+
+    function openJdModal(id) {
+      const row = readRow(id) || jobs.find((x) => x.id === id);
+      if (!row) return;
+      editingJdId = id;
+      document.getElementById('jd-modal-title').textContent = `${row.company} · ${row.position}`;
+      document.getElementById('jd-modal-body').value = row.job_description || '';
+      document.getElementById('jd-modal').classList.add('open');
+    }
+    function closeJdModal() {
+      editingJdId = null;
+      document.getElementById('jd-modal').classList.remove('open');
+    }
+    async function saveJdModal() {
+      const id = editingJdId;
+      if (id == null) return;
+      const root = document.querySelector(`[data-id="${id}"]`);
+      const ta = root && root.querySelector('[data-f="job_description"]');
+      const text = document.getElementById('jd-modal-body').value;
+      if (ta) ta.value = text;
+      closeJdModal();
+      await saveRow(id);
+    }
+
+    function openMailModal(id) {
+      const row = readRow(id) || jobs.find((x) => x.id === id);
+      if (!row) return;
+      editingMailId = id;
+      const body = (row.email_body && row.email_body.trim()) || defaultEmailBody(row);
+      document.getElementById('mail-modal-title').textContent = `${row.company} · ${row.position}`;
+      document.getElementById('mail-modal-meta').textContent =
+        `城市：${row.city_mode || '未说明'} ｜ 简历版本：${selectedResumeLabel(row)}`;
+      document.getElementById('mail-modal-body').value = body;
+      document.getElementById('mail-modal').classList.add('open');
+    }
+    function closeMailModal() {
+      editingMailId = null;
+      document.getElementById('mail-modal').classList.remove('open');
+    }
+    function regenMailInModal() {
+      const id = editingMailId;
+      if (id == null) return;
+      const row = readRow(id) || jobs.find((x) => x.id === id);
+      if (!row) return;
+      document.getElementById('mail-modal-body').value = defaultEmailBody(row);
+      setStatus('已按简历 + 岗位描述重新生成正文（未保存）', 'warn');
+    }
+    async function saveMailModal() {
+      const id = editingMailId;
+      if (id == null) return;
+      const root = document.querySelector(`[data-id="${id}"]`);
+      const ta = root && root.querySelector('[data-f="email_body"]');
+      const text = document.getElementById('mail-modal-body').value;
+      if (ta) ta.value = text;
+      closeMailModal();
+      await saveRow(id);
+    }
+
+    async function resetEmailDrafts() {
+      if (!confirm('将用「简历 + 岗位描述」模板覆盖所有邮件正文，是否继续？')) return;
+      setStatus('重置邮件正文…', 'warn');
+      try {
+        for (const j of jobs) {
+          const live = readRow(j.id) || j;
+          const body = { ...live, email_body: defaultEmailBody(live) };
+          const updated = await api('/api/jobs/' + j.id, { method: 'PUT', body: JSON.stringify(body) });
+          const i = jobs.findIndex((x) => x.id === j.id);
+          if (i >= 0) jobs[i] = ensureBody(updated);
+        }
+        jobs = sortJobsByRecommend(jobs);
+        render();
+        setStatus('邮件正文已重置');
+      } catch (e) {
+        setStatus(e.message, 'err');
+      }
+    }
+
+    async function testSend(id) {
+      const row = readRow(id);
+      if (!row) return;
+      if (!row.email_body || !row.email_body.trim()) row.email_body = defaultEmailBody(row);
+      await saveRow(id);
+      const resumeId = currentResumeId(id);
+      setStatus(`测试发信 → ${TEST_EMAIL} …`, 'warn');
+      try {
+        const res = await api('/api/email/test', {
+          method: 'POST',
+          body: JSON.stringify({
+            job_id: id,
+            resume_id: resumeId || null,
+            subject: `【测试投递】${row.position} - ${row.company}`,
+            body: row.email_body,
+          }),
+        });
+        setStatus(res.message || `测试邮件已发送至 ${TEST_EMAIL}`);
+      } catch (e) {
+        setStatus('测试发信失败：' + e.message, 'err');
+        alert('测试发信失败：' + e.message + '\n\n请在 .env 填写 SMTP_USER / SMTP_PASS / SMTP_FROM 后重启服务。');
+      }
+    }
+
+    function askSendCompany(id) {
+      const row = readRow(id);
+      if (!row) return;
+      if (!row.email || !row.email.includes('@')) {
+        setStatus('该公司邮箱为空或无效', 'err');
+        return;
+      }
+      const rid = currentResumeId(id);
+      if (!rid) {
+        setStatus('请先「编辑简历」并保存/选择版本', 'err');
+        return;
+      }
+      if (!smtpConfigured) {
+        alert('SMTP 未配置：请在 .env 填写 SMTP_USER / SMTP_PASS / SMTP_FROM（QQ 邮箱授权码）后重启。');
+        return;
+      }
+      pendingSendId = id;
+      document.getElementById('confirm-to').textContent = row.email;
+      document.getElementById('confirm-company').textContent = row.company;
+      document.getElementById('confirm-position').textContent = row.position;
+      const list = resumeMap[id] || [];
+      const hit = list.find((x) => Number(x.id) === Number(rid));
+      document.getElementById('confirm-resume').textContent = hit
+        ? `${hit.version_tag} (#${hit.id})`
+        : `#${rid}`;
+      document.getElementById('confirm-input').value = '';
+      document.getElementById('confirm-modal').classList.add('open');
+    }
+    function closeConfirm() {
+      pendingSendId = null;
+      document.getElementById('confirm-modal').classList.remove('open');
+    }
+    async function doSendCompany() {
+      if (document.getElementById('confirm-input').value.trim() !== '确认发送') {
+        setStatus('请输入「确认发送」', 'err');
+        return;
+      }
+      const id = pendingSendId;
+      if (id == null) return;
+      const row = readRow(id);
+      closeConfirm();
+      if (!row.email_body || !row.email_body.trim()) row.email_body = defaultEmailBody(row);
+      await saveRow(id);
+      const resumeId = currentResumeId(id);
+      setStatus('正在服务端发送…', 'warn');
+      try {
+        const res = await api('/api/email/send', {
+          method: 'POST',
+          body: JSON.stringify({
+            job_id: id,
+            resume_id: resumeId,
+            to: row.email,
+            subject: `应聘${row.position} - 李江敏`,
+            body: row.email_body,
+          }),
+        });
+        setStatus(res.message || '已发送');
+        await reloadJobs();
+      } catch (e) {
+        setStatus('发送失败：' + e.message, 'err');
+        alert('发送失败：' + e.message);
+      }
+    }
+
+    reloadJobs();
+  </script>
+</body>
+</html>

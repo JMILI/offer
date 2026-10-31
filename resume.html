@@ -1,0 +1,1765 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>李江敏 - Rust / C++ 开发工程师</title>
+  <style>
+    :root {
+      --blue-deep: #1e3a8a;
+      --blue-mid: #2563eb;
+      --blue-bright: #3b82f6;
+      --blue-light: #93c5fd;
+      --blue-pale: #eff6ff;
+      --grad-main: linear-gradient(180deg, #1e40af 0%, #2563eb 45%, #60a5fa 100%);
+      --grad-icon: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
+      --grad-spine: linear-gradient(180deg, #1e3a8a 0%, #2563eb 60%, #60a5fa 100%);
+      --ink: #1e293b;
+      --body: #334155;
+      --muted: #64748b;
+      --line: #dbeafe;
+      --paper: #ffffff;
+      --edit-outline: #3b82f6;
+      --a4-w: 210mm;
+      --a4-h: 297mm;
+      --spine-w: 9mm;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+      background: #cbd5e1;
+      color: var(--body);
+      font-size: 10.5pt;
+      line-height: 1.55;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    /* ========== 工具栏 ========== */
+    .toolbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 99;
+      background: rgba(30, 58, 138, 0.96);
+      color: rgba(255,255,255,0.92);
+      font-size: 13px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+    }
+    .toolbar-inner {
+      max-width: 960px; margin: 0 auto; padding: 8px 16px;
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 10px;
+    }
+    .toolbar-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .toolbar-divider { width: 1px; height: 22px; background: rgba(255,255,255,0.2); }
+    .toolbar-label { font-size: 12px; opacity: 0.75; }
+    .toolbar button, .toolbar label.btn-upload {
+      border: none; border-radius: 5px; padding: 6px 14px;
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      white-space: nowrap; display: inline-flex; align-items: center; gap: 4px;
+    }
+    .btn-primary { background: #fff; color: var(--blue-deep); }
+    .btn-accent { background: #60a5fa; color: #fff; }
+    .btn-accent.active { background: #16a34a; }
+    .btn-ghost { background: transparent; color: #cbd5e1; border: 1px solid #64748b; }
+    .btn-warn { background: transparent; color: #fca5a5; border: 1px solid #f87171; }
+    .btn-upload { background: transparent; color: #cbd5e1; border: 1px solid #64748b; }
+    .btn-upload input { display: none; }
+    #save-status { font-size: 11px; color: #86efac; min-width: 80px; }
+    #save-status.warn { color: #fcd34d; }
+
+    .format-tools { opacity: 0.45; pointer-events: none; transition: opacity 0.15s; }
+    body.editing .format-tools { opacity: 1; pointer-events: auto; }
+    .fmt-btn {
+      min-width: 34px; padding: 6px 10px; font-weight: 700;
+      font-family: Georgia, "Times New Roman", serif;
+    }
+    .fmt-btn.fmt-bold { font-weight: 800; font-size: 14px; }
+    .fmt-btn.fmt-lg { font-size: 15px; }
+    .fmt-btn.fmt-sm { font-size: 11px; }
+
+    .modal-mask {
+      display: none; position: fixed; inset: 0; z-index: 200;
+      background: rgba(15, 23, 42, 0.55);
+      align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-mask.open { display: flex; }
+    .modal {
+      width: min(520px, 100%);
+      background: #fff; border-radius: 10px;
+      box-shadow: 0 16px 48px rgba(15, 23, 42, 0.25);
+      overflow: hidden;
+    }
+    .modal.modal-wide { width: min(720px, 100%); }
+    .modal-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px; background: var(--blue-deep); color: #fff;
+      font-weight: 700; font-size: 14px;
+    }
+    .modal-header button {
+      border: none; background: transparent; color: #fff;
+      font-size: 18px; cursor: pointer; line-height: 1;
+    }
+    .modal-body { padding: 16px; max-height: min(70vh, 560px); overflow: auto; }
+    .modal-footer {
+      display: flex; justify-content: flex-end; gap: 8px;
+      padding: 12px 16px; border-top: 1px solid var(--line);
+      background: #f8fafc;
+    }
+    .form-row { margin-bottom: 12px; }
+    .form-row label {
+      display: block; font-size: 12px; font-weight: 600;
+      color: var(--blue-deep); margin-bottom: 4px;
+    }
+    .form-row input, .form-row select, .form-row textarea {
+      width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1;
+      border-radius: 6px; font-size: 13px; font-family: inherit;
+    }
+    .form-row textarea { min-height: 64px; resize: vertical; }
+    .form-hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .history-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .history-item {
+      border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px;
+      display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;
+      background: #fff;
+    }
+    .history-item:hover { border-color: var(--blue-light); background: var(--blue-pale); }
+    .history-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .history-title { font-weight: 700; color: var(--ink); font-size: 13px; }
+    .history-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+    .history-actions button {
+      border: 1px solid #94a3b8; background: #fff; border-radius: 5px;
+      padding: 5px 10px; font-size: 12px; cursor: pointer; font-weight: 600;
+    }
+    .history-actions .btn-load { background: var(--blue-mid); color: #fff; border-color: var(--blue-mid); }
+    .history-actions .btn-del { color: #b91c1c; border-color: #fca5a5; }
+    .history-empty { text-align: center; color: var(--muted); padding: 24px 8px; font-size: 13px; }
+    .version-meta-bar {
+      display: none; position: fixed; left: 50%; transform: translateX(-50%);
+      bottom: 12px; z-index: 90; background: rgba(30,58,138,0.92); color: #fff;
+      font-size: 12px; padding: 6px 14px; border-radius: 999px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    }
+    .version-meta-bar.show { display: block; }
+
+    .edit-banner {
+      display: none; position: fixed; top: 52px; left: 50%; transform: translateX(-50%);
+      z-index: 98; background: var(--blue-mid); color: #fff;
+      font-size: 12px; padding: 5px 16px; border-radius: 0 0 8px 8px;
+    }
+    body.editing .edit-banner { display: block; }
+    body.editing .pages { padding-top: 88px; }
+
+    body.editing [data-edit="true"] {
+      outline: 1px dashed var(--edit-outline); outline-offset: 2px; border-radius: 2px; cursor: text;
+    }
+    body.editing [data-edit="true"]:hover { background: rgba(59,130,246,0.04); }
+
+    .pages {
+      padding: 64px 20px 28px;
+      display: flex; flex-direction: column; align-items: center; gap: 18px;
+    }
+
+    /* ========== 页面：左侧竖条 + 主内容 ========== */
+    .page {
+      width: var(--a4-w);
+      background: var(--paper);
+      box-shadow: 0 4px 24px rgba(30,58,138,0.15);
+      position: relative;
+      display: flex;
+      overflow: visible;
+      align-items: stretch;
+    }
+
+    .spine {
+      width: var(--spine-w);
+      flex-shrink: 0;
+      align-self: stretch;
+      background: var(--grad-spine);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      transform: rotate(180deg);
+      color: rgba(255,255,255,0.92);
+      font-size: 7pt;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      user-select: none;
+    }
+
+    .page-inner {
+      flex: 1;
+      min-width: 0;
+      padding: 7mm 10mm 8mm 8mm;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    /* ========== 页眉 ========== */
+    .resume-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: stretch;
+      gap: 10px;
+      margin-bottom: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .header-left { flex: 1; min-width: 0; }
+
+    .name-row {
+      display: flex;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 8px 14px;
+      margin-bottom: 6px;
+    }
+
+    .name-row h1 {
+      font-size: 20pt;
+      font-weight: 800;
+      color: var(--ink);
+      letter-spacing: 3px;
+      line-height: 1.15;
+    }
+
+    .contact-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px 16px;
+    }
+
+    .contact-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 9.5pt;
+      color: var(--body);
+    }
+
+    .contact-item .ci-icon {
+      width: 18px; height: 18px; flex-shrink: 0;
+      border-radius: 50%;
+      background: var(--grad-icon);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 9px; color: #fff;
+    }
+
+    .contact-item b {
+      color: var(--blue-deep);
+      font-weight: 600;
+      margin-right: 2px;
+    }
+    .contact-item a { color: var(--blue-mid); text-decoration: none; }
+
+    .photo-wrap {
+      flex-shrink: 0;
+      display: flex;
+      align-items: stretch;
+      align-self: stretch;
+    }
+    .photo-wrap img {
+      display: block;
+      height: 100%;
+      width: auto;
+      aspect-ratio: 26 / 34;
+      max-width: 26mm;
+      object-fit: cover;
+      object-position: center top;
+      border: 2px solid var(--blue-light);
+      box-shadow: 0 2px 10px rgba(37,99,235,0.2);
+    }
+
+    /* ========== 时间轴 ========== */
+    .timeline {
+      position: relative;
+      padding-left: 22px;
+      flex: 1 1 auto;
+    }
+
+    .timeline::before {
+      content: "";
+      position: absolute;
+      left: 8px; top: 12px; bottom: 8px;
+      width: 2px;
+      background: linear-gradient(180deg, var(--blue-mid) 0%, var(--blue-light) 85%, transparent 100%);
+      border-radius: 1px;
+      pointer-events: none;
+    }
+
+    .tl-section {
+      position: relative;
+      margin-bottom: 8px;
+    }
+    .tl-section:last-child { margin-bottom: 0; }
+
+    .tl-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 5px;
+      position: relative;
+    }
+
+    .tl-icon {
+      position: absolute;
+      left: -22px;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: var(--grad-icon);
+      border: 2px solid #fff;
+      box-shadow: 0 0 0 1px var(--blue-light);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 9px; color: #fff;
+      z-index: 1;
+    }
+
+    .tl-title {
+      font-size: 12pt;
+      font-weight: 800;
+      color: var(--blue-deep);
+      white-space: nowrap;
+      letter-spacing: 1px;
+    }
+
+    .tl-line {
+      flex: 1;
+      height: 2px;
+      background: linear-gradient(90deg, var(--blue-mid) 0%, var(--blue-light) 70%, transparent 100%);
+      border-radius: 1px;
+      min-width: 20px;
+    }
+
+    .tl-body { padding-left: 2px; }
+
+    /* ========== 统一条目标题行 ========== */
+    .entry { margin-bottom: 6px; }
+    .entry:last-child { margin-bottom: 0; }
+
+    .entry-title {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 2px 8px;
+      margin-bottom: 3px;
+      padding-bottom: 3px;
+      border-bottom: 1px dashed var(--line);
+    }
+    .entry-title .org {
+      font-weight: 700;
+      font-size: 10.5pt;
+      color: var(--blue-deep);
+      text-align: left;
+    }
+    .entry-title .sep {
+      color: var(--blue-light);
+      font-weight: 400;
+      user-select: none;
+    }
+    .entry-title .role {
+      font-size: 10pt;
+      font-weight: 500;
+      color: var(--body);
+    }
+    .entry-title .date {
+      margin-left: auto;
+      font-size: 9.5pt;
+      font-weight: 600;
+      color: var(--blue-mid);
+      white-space: nowrap;
+    }
+
+    .entry-continue {
+      margin-top: 2px;
+      padding-top: 4px;
+    }
+
+    .prose-block {
+      font-size: 10pt;
+      color: var(--body);
+      margin-bottom: 2px;
+      text-align: justify;
+      line-height: 1.52;
+    }
+    .field-label { font-weight: 700; color: var(--ink); }
+
+    .work-item { margin-bottom: 3px; }
+    .work-item .item-title {
+      font-weight: 700; font-size: 10pt; color: var(--ink); margin-bottom: 1px;
+    }
+    .work-item .item-body {
+      font-size: 10pt; color: var(--body); text-align: justify; line-height: 1.52;
+    }
+
+    .skills-prose p {
+      font-size: 10pt; color: var(--body); margin-bottom: 2px;
+      text-align: justify; line-height: 1.52;
+    }
+
+    .summary {
+      font-size: 10pt; color: var(--body);
+      padding: 6px 10px;
+      background: var(--blue-pale);
+      border-radius: 4px;
+      border-left: 3px solid var(--blue-mid);
+      text-align: justify; line-height: 1.52;
+    }
+    .summary p { margin-bottom: 2px; }
+    .summary p:last-child { margin-bottom: 0; }
+
+    .page-continued { padding-top: 0; }
+
+    @page { size: A4 portrait; margin: 0; }
+
+    @media print {
+      body { background: #fff; }
+      .toolbar, .edit-banner, .modal-mask, .version-meta-bar { display: none !important; }
+      body.editing [data-edit="true"] { outline: none !important; background: none !important; }
+      .pages { padding: 0; gap: 0; }
+      .page {
+        width: 210mm;
+        display: block;
+        box-shadow: none;
+        overflow: visible;
+        page-break-after: auto;
+        break-after: auto;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .spine {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: var(--spine-w);
+        height: 100%;
+        min-height: 297mm;
+        z-index: 10;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .page-inner {
+        margin-left: var(--spine-w);
+        width: calc(210mm - var(--spine-w));
+        padding: 7mm 10mm 8mm 8mm;
+        box-sizing: border-box;
+        display: block;
+        overflow: visible;
+      }
+      .timeline { overflow: visible; }
+      .entry, .work-item, .tl-section, .prose-block, .item-body, .summary, .summary p {
+        break-inside: auto;
+        page-break-inside: auto;
+      }
+      .spine, .tl-icon, .ci-icon, .photo-wrap img, .summary, .tl-line {
+        -webkit-print-color-adjust: exact; print-color-adjust: exact;
+      }
+    }
+
+    @media screen and (max-width: 820px) {
+      .pages { padding-top: 100px; }
+      .page { width: 100%; flex-direction: column; min-height: auto; }
+      .spine { width: 100%; height: 24px; writing-mode: horizontal-tb; transform: none; letter-spacing: 2px; }
+      .resume-header { flex-direction: column; align-items: stretch; }
+      .photo-wrap { align-self: center; height: auto; }
+      .photo-wrap img { width: 26mm; height: 34mm; }
+      .entry-head { grid-template-columns: 1fr; }
+      .entry-title .date { margin-left: 0; width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="toolbar">
+    <div class="toolbar-inner">
+      <span class="toolbar-label">简历编辑器</span>
+      <div class="toolbar-group">
+        <button class="btn-ghost" onclick="location.href='/'">🏠 首页</button>
+        <button class="btn-ghost" id="btn-back-jobs" onclick="goBackToJobs()">🏢 返回岗位列表</button>
+        <button class="btn-accent" id="btn-edit" onclick="toggleEdit()">✏️ 编辑模式</button>
+        <button class="btn-ghost" onclick="saveDraft()">💾 本地草稿</button>
+        <button class="btn-accent" onclick="openSaveDbModal()">☁ 保存到数据库</button>
+        <button class="btn-ghost" onclick="openHistoryModal()">📚 查看历史简历</button>
+        <button class="btn-warn" onclick="resetDraft()">↺ 恢复默认</button>
+        <label class="btn-upload">🖼 换照片<input type="file" id="photo-input" accept="image/*" onchange="changePhoto(event)"></label>
+      </div>
+      <div class="toolbar-divider"></div>
+      <div class="toolbar-group format-tools" id="format-tools">
+        <span class="toolbar-label">文字</span>
+        <button type="button" class="btn-ghost fmt-btn fmt-bold" id="btn-bold" title="加粗 (Ctrl+B)"><b>B</b></button>
+        <button type="button" class="btn-ghost fmt-btn fmt-lg" id="btn-font-up" title="放大字号">A+</button>
+        <button type="button" class="btn-ghost fmt-btn fmt-sm" id="btn-font-down" title="缩小字号">A−</button>
+      </div>
+      <div class="toolbar-divider"></div>
+      <div class="toolbar-group">
+        <button class="btn-primary" onclick="exportPDF()">导出 PDF</button>
+        <button class="btn-primary" onclick="exportWord()">导出 Word</button>
+        <button class="btn-ghost" onclick="exportHTML()">导出 HTML</button>
+      </div>
+      <span id="save-status"></span>
+    </div>
+  </div>
+
+  <div class="edit-banner">编辑模式已开启 — 选中文字后可加粗 / 调整字号，Ctrl+S 保存本地草稿</div>
+  <div class="version-meta-bar" id="version-meta-bar"></div>
+
+  <!-- 保存到数据库 -->
+  <div class="modal-mask" id="modal-save-db" role="dialog" aria-modal="true">
+    <div class="modal">
+      <div class="modal-header">
+        <span>保存当前简历到数据库</span>
+        <button type="button" onclick="closeModal('modal-save-db')" aria-label="关闭">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <label for="save-company">面试公司 *</label>
+          <input id="save-company" type="text" placeholder="例如：字节跳动 / 西安海讯科技" required>
+        </div>
+        <div class="form-row">
+          <label for="save-version">版本 *</label>
+          <input id="save-version" type="text" list="version-presets" placeholder="v1" value="v1">
+          <datalist id="version-presets">
+            <option value="v1"></option>
+            <option value="v2"></option>
+            <option value="v3"></option>
+            <option value="final"></option>
+          </datalist>
+          <div class="form-hint">同一公司 + 版本号唯一；重复保存会覆盖该版本内容</div>
+        </div>
+        <div class="form-row">
+          <label for="save-time">时间 *</label>
+          <input id="save-time" type="datetime-local">
+        </div>
+        <div class="form-row">
+          <label for="save-note">备注</label>
+          <textarea id="save-note" placeholder="可选：岗位、投递渠道等"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-ghost" style="padding:6px 14px;border-radius:5px;cursor:pointer;" onclick="closeModal('modal-save-db')">取消</button>
+        <button type="button" class="btn-primary" style="padding:6px 14px;border-radius:5px;cursor:pointer;border:none;" onclick="confirmSaveToDb()">确认保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 历史简历 -->
+  <div class="modal-mask" id="modal-history" role="dialog" aria-modal="true">
+    <div class="modal modal-wide">
+      <div class="modal-header">
+        <span>历史简历</span>
+        <button type="button" onclick="closeModal('modal-history')" aria-label="关闭">×</button>
+      </div>
+      <div class="modal-body">
+        <div id="history-loading" class="history-empty" style="display:none;">加载中…</div>
+        <ul class="history-list" id="history-list"></ul>
+        <div id="history-empty" class="history-empty" style="display:none;">暂无历史版本，请先「保存到数据库」</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-ghost" style="padding:6px 14px;border-radius:5px;cursor:pointer;" onclick="refreshHistoryList()">刷新</button>
+        <button type="button" class="btn-primary" style="padding:6px 14px;border-radius:5px;cursor:pointer;border:none;" onclick="closeModal('modal-history')">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="pages" id="resume-root">
+
+    <!-- 简历正文（连续流式排版，PDF 按 A4 自动分页） -->
+    <div class="page">
+      <div class="spine">Personal Resume</div>
+      <div class="page-inner">
+        <header class="resume-header">
+          <div class="header-left" data-edit="true">
+            <div class="name-row">
+              <h1>李江敏</h1>
+            </div>
+            <div class="contact-grid">
+              <div class="contact-item"><span class="ci-icon">🎂</span><span><b>出生年月</b>1997.02</span></div>
+              <div class="contact-item"><span class="ci-icon">💼</span><span><b>求职意向</b>Rust, C++ 开发工程师</span></div>
+              <div class="contact-item"><span class="ci-icon">📱</span><span><b>电话</b>17691086153</span></div>
+              <div class="contact-item"><span class="ci-icon">📍</span><span><b>工作地点</b>不限城市</span></div>
+              <div class="contact-item"><span class="ci-icon">✉</span><span><b>邮箱</b><a href="mailto:923749851@qq.com">923749851@qq.com</a></span></div>
+            </div>
+          </div>
+          <div class="photo-wrap">
+            <img id="resume-photo" src="assets/photo.png" alt="证件照">
+          </div>
+        </header>
+
+        <div class="timeline">
+          <section class="tl-section">
+            <div class="tl-head">
+              <div class="tl-icon">🎓</div>
+              <h2 class="tl-title">教育经历</h2>
+              <div class="tl-line"></div>
+            </div>
+            <div class="tl-body" data-edit="true">
+              <article class="entry">
+                <div class="entry-title">
+                  <span class="org">西安建筑科技大学</span>
+                  <span class="sep">|</span>
+                  <span class="role">计算机科学与技术 · 本科</span>
+                </div>
+                <p class="prose-block"><span class="field-label">核心课程：</span>数据结构、编译原理、计算机网络、操作系统等等。</p>
+              </article>
+              <article class="entry">
+                <div class="entry-title">
+                  <span class="org">成都信息工程大学</span>
+                  <span class="sep">|</span>
+                  <span class="role">软件工程 · 硕士</span>
+                </div>
+                <p class="prose-block"><span class="field-label">核心课程：</span>软件工程、软件需求工程、软件体系结构、UML 建模等等。（GPA: 3.26/4.00, 专业前 10%）</p>
+                <p class="prose-block"><span class="field-label">获奖：</span>研究生学业奖学金二等奖（省级）、三等奖。</p>
+                <p class="prose-block"><span class="field-label">英语：</span>CET4</p>
+                <p class="prose-block"><span class="field-label">学术成果：</span></p>
+                <p class="prose-block" style="padding-left:1em;">[1] 李江敏, 等. 面向数据库参数调优的协作型多智能体模型[J]. 电子学报，2024（北大中文核心，已录用. 1 作）</p>
+                <p class="prose-block" style="padding-left:1em;">[2] S. Qiao et al., CMA+DB: How to Automatically Tune Database Parameters through Collaborative Multi-Agents[J]. IEEE TKDE. （3 作）</p>
+              </article>
+            </div>
+          </section>
+
+          <section class="tl-section">
+            <div class="tl-head">
+              <div class="tl-icon">⚙</div>
+              <h2 class="tl-title">专业技术</h2>
+              <div class="tl-line"></div>
+            </div>
+            <div class="tl-body" data-edit="true">
+              <div class="skills-prose">
+                <p><span class="field-label">Rust 方面：</span>熟悉 Rust 语言基础，了解所有权，借用，生命周期，并发与多线程，错误处理等等。可以编写测试文档以及单元测试，对新兴技术有学习兴趣。</p>
+                <p><span class="field-label">C++ 方面：</span>熟悉 C++ 编程语言，内存模型，对象生命周期模型，STL, 现代 C++ 规范等等。了解 cmake, gdb 调试等等。</p>
+                <p><span class="field-label">web 以及 java 方面：</span>了解 html, css, JavaScript, Vue, Node.js。熟悉 Java 技术栈（微服务，Nacos, mysql, minio, redis, nginx, spring cloud 等等），构建开源项目「医学影像阅片系统」。</p>
+                <p>了解常用的 Linux 操作，Docker, docker compose。对 K8s 有一般性的了解以及基本用法。</p>
+                <p>分布式理论（BASE, CAP）, 23 种设计模式, 5 大设计原则等等。</p>
+                <p>了解软件工程理论（需求，架构）, 可编写需求规格说明书，学术论文以及专利等等。</p>
+              </div>
+            </div>
+          </section>
+
+          <section class="tl-section">
+            <div class="tl-head">
+              <div class="tl-icon">🔗</div>
+              <h2 class="tl-title">在研项目</h2>
+              <div class="tl-line"></div>
+            </div>
+            <div class="tl-body" data-edit="true">
+              <p class="prose-block">《风声-网络版》桌游项目，一款基于谍战风格的桌游，基于真实线下经历，优化桌游村规，实现多人在线视频游戏，当前项目已经设计了基本的架构，实现了完整桌游规则的人机试玩版本的 demo，游玩地址：<a href="https://sealtun-fengsheng-vue-ns-km83ebvo.sealosgzg.site">https://sealtun-fengsheng-vue-ns-km83ebvo.sealosgzg.site</a> 当前仅仅支持快速试玩模式</p>
+              <p class="prose-block"><span class="field-label">其余项目访问地址：</span><a href="https://sealtun-project-access-ns-km83ebvo.sealosgzg.site/">https://sealtun-project-access-ns-km83ebvo.sealosgzg.site/</a></p>
+            </div>
+          </section>
+
+          <section class="tl-section">
+            <div class="tl-head">
+              <div class="tl-icon">💼</div>
+              <h2 class="tl-title">工作经历</h2>
+              <div class="tl-line"></div>
+            </div>
+            <div class="tl-body" data-edit="true">
+              <article class="entry">
+                <div class="entry-title">
+                  <span class="org">西安海讯科技</span>
+                  <span class="sep">|</span>
+                  <span class="role">C++ 开发工程师</span>
+                  <span class="date">2025.11 — 2026.06</span>
+                </div>
+                <p class="prose-block"><span class="field-label">部门岗位：</span>研发部门，C++ 开发工程师</p>
+                <p class="prose-block"><span class="field-label">公司介绍：</span>西安海讯科技从事信息化系统与软件产品研发，业务涵盖空间目标轨迹解算与可视化、多类型二进制协议转换处理、分布式 C++ 服务运维等方向，为行业应用提供底层数据处理、协议解析与平台集成能力。</p>
+                <p class="prose-block"><span class="field-label">工作描述：</span>主要负责底层二进制协议引擎、轨迹坐标解算、QT 可视化及分布式运维平台等模块的设计开发与性能优化，具体包括：</p>
+                <div class="work-item">
+                  <div class="item-title">1. 轨迹坐标解算与 QT 可视化模块开发</div>
+                  <div class="item-body">实现北天东、经纬高、地心坐标系互转换算法；基于 QT 开发轨迹数据读取、实时渲染界面，完成多维度空间坐标插值、旋转、滤波、数据复制处理，支撑目标轨迹可视化展示。</div>
+                </div>
+                <div class="work-item">
+                  <div class="item-title">2. 图表渲染与自动化报告生成系统</div>
+                  <div class="item-body">基于 ECharts 绘制分析图表，将图表转为 Base64 图像传输后端；设计多线程并行绘图方案，构建指标树目录结构，解决多客户端并发写目录冲突；调用 Python 脚本批量自动生成 Word/PDF 分析报告，配套 Promise 异步流程管控。</div>
+                </div>
+                <div class="work-item">
+                  <div class="item-title">3. 多类型二进制协议转换引擎（核心业务）</div>
+                  <div class="item-body">支持多数据表、多异构协议解析，区分头部/中间字节识别两种源协议，实现 1 对 1、多对 1 复杂协议映射组装；设计两版数据迁移架构：V1 串行逐条解析处理 500 万数据耗时 1h；V2 新增中间表/中间文件预抽取、分表分段多线程并行处理，同等数据量压缩至 10 分钟内，性能大幅提升；基于时间误差匹配多源异构数据，解决「三缺一」残缺数据匹配问题，封装统一二进制数据处理接口。</div>
+                </div>
+                <div class="work-item">
+                  <div class="item-title">4. 底层二进制数据框架重构</div>
+                  <div class="item-body">将传统结构体处理重构为基于 QByteArray 二进制流处理架构；自动生成协议元数据 Record（字段偏移、字节长度、类型），同协议共享元数据；封装二进制&lt;-&gt;JSON 互转、字段读写通用接口，配套可视化测试工具，支持自定义协议调试。</div>
+                </div>
+                <div class="work-item">
+                  <div class="item-title">5. 分布式运维平台与通信封装</div>
+                  <div class="item-body">搭建 C++ 前后端分布式架构，实现席位管理、节点/服务状态巡检、一键部署启动、资源文件上传预览拖拽、方案下发全链路；自研 WebSocket 调试工具模拟跨端消息交互，替代 Postman 完成 C++ 与 Java 服务联调。</div>
+                </div>
+                <div class="work-item">
+                  <div class="item-title">6. 协议反射、序列化与日志封装</div>
+                  <div class="item-body">采用 1 字节对齐、位域结构体直接映射二进制原始报文，处理跨字节、三字节特殊数据；基于反射封装内外协议双向转换逻辑；模块化日志系统，注册协议字段即可自动格式化打印报文，对外统一暴露二进制互转接口。</div>
+                </div>
+              </article>
+              <article class="entry">
+                <div class="entry-title">
+                  <span class="org">北京天空卫士网络安全技术有限公司（<a href="http://www.secgator.cn/">http://www.secgator.cn/</a>）（成都部门）</span>
+                  <span class="date">2024年7月 — 2025年7月</span>
+                </div>
+                <p class="prose-block"><span class="field-label">部门岗位：</span>后台数据部门，C++ 软件开发工程师</p>
+                <p class="prose-block"><span class="field-label">公司介绍：</span>北京天空卫士是一家主攻数据安全技术企业，致力于发展以人和数据为核心的新一代数据安全技术。是目前为止亚太地区唯一累计五年入选 Gartner 全球企业级数据泄露指南的中国网络安全企业。</p>
+                <p class="prose-block"><span class="field-label">工作描述：</span>主要负责统一内容安全管理平台的二次开发，代码维护，单元测试，修复 bug。主要对各类文件进行解析。例如对邮件 eml 文件，对 office2007 以前的二进制文件格式，以及基于 openxml 风格的 office 文件格式，压缩文件等进行内容解析。通过准确识别文件内容，为数据防泄漏网关，Web 安全网关，邮件安全网关提供数据支持。</p>
+              </article>
+            </div>
+          </section>
+
+          <section class="tl-section">
+            <div class="tl-head">
+              <div class="tl-icon">📋</div>
+              <h2 class="tl-title">在校项目经历</h2>
+              <div class="tl-line"></div>
+            </div>
+            <div class="tl-body" data-edit="true">
+              <article class="entry">
+                <div class="entry-title">
+                  <span class="org">开源项目「医学影像阅片系统」</span>
+                  <span class="date">2022.11 — 2023.06</span>
+                </div>
+                <p class="prose-block"><span class="field-label">项目描述：</span>为胸外科医生提供病人胸部 CT 影像管理和标记服务，并且提供服务租赁的能力。</p>
+                <p class="prose-block"><span class="field-label">主要内容：</span>数据库设计，软件架构设计、测试环境构建、系统前端的开发，后端开发、开发环境部署。</p>
+                <p class="prose-block"><span class="field-label">项目成果：</span>实现了基于 SaaS 模式和微服务架构的「医学影像阅片系统」系统，该系统实现了医生的日常阅片、标记、对比，查阅过往病人 CT 影像等功能，提供了其他医院订阅本系统的能力，基于多租户模式，实现了数据的物理隔离。</p>
+                <p class="prose-block"><span class="field-label">相关技术：</span>基于雪亿管理系统进行二次开发，涉及 Java, Spring Cloud, nacos, mysql, minio, redis, nginx 等技术。拥有从项目构建到项目二次开发以及项目部署的经验。</p>
+                <p class="prose-block"><span class="field-label">开源地址：</span><a href="https://github.com/JMILI/WestChina-Cloud">https://github.com/JMILI/WestChina-Cloud</a></p>
+              </article>
+              <article class="entry">
+                <div class="entry-title">
+                  <span class="org">国家自然科学基金（62272066）— 学习型自治数据库系统关键技术研究</span>
+                  <span class="sep">|</span>
+                  <span class="role">项目负责人</span>
+                  <span class="date">2022.01 — 2024.06</span>
+                </div>
+                <p class="prose-block"><span class="field-label">项目描述：</span>改进现有数据库参数自动化调优方法。</p>
+                <p class="prose-block"><span class="field-label">负责内容：</span>利用多智能体模型进行数据库参数自动化调优，设计模型结构，算法，实现算法编码，测试，完成数据库参数调优器。比现有方法快 17% 的时间得到较佳数据库配置。</p>
+                <p class="prose-block"><span class="field-label">项目成果：</span>发表一篇论文；提高了分析问题、解决问题能力，克服了 0 到 1 的困难。</p>
+              </article>
+            </div>
+          </section>
+
+          <section class="tl-section">
+            <div class="tl-head">
+              <div class="tl-icon">👤</div>
+              <h2 class="tl-title">自我评价</h2>
+              <div class="tl-line"></div>
+            </div>
+            <div class="tl-body" data-edit="true">
+              <div class="summary">
+                <p>1. 拥有两段 C++ 工业级底层开发经历，深耕二进制协议解析、大数据迁移性能优化、空间坐标解算、分布式 C++ 服务开发，具备千万级数据调优落地成果；</p>
+                <p>2. 技术覆盖面广、学习上手速度快，兼顾底层 C++ 二进制开发、QT 桌面、微服务、算法项目，正在深耕 Rust 高性能开发，补齐底层技术深度；</p>
+                <p>3. 擅长架构重构、性能优化、解决复杂并发/异构数据匹配难题，文档编写规范，具备从 0 到 1 设计协议转换引擎、可视化系统、运维平台的完整能力；</p>
+                <p>4. 逻辑分析、线上问题排查能力突出，抗压性强，沟通协作顺畅，目标长期深耕 Rust/C++ 底层高性能开发岗位。</p>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script>
+    const STORAGE_KEY = 'resume-draft-v20';
+
+    /** 与 CSS 一致的排版常量（网页 / PDF / Word 共用） */
+    const TYPO = {
+      bodySize: '10.5pt',
+      bodyColor: '#334155',
+      ink: '#1e293b',
+      blueDeep: '#1e3a8a',
+      blueMid: '#2563eb',
+      blueLight: '#93c5fd',
+      bluePale: '#eff6ff',
+      line: '#dbeafe',
+      nameSize: '20pt',
+      nameSpacing: '3px',
+      jobSize: '11pt',
+      titleSize: '12pt',
+      proseSize: '10pt',
+      contactSize: '9.5pt',
+      dateSize: '9.5pt',
+      orgSize: '10.5pt',
+      footerSize: '7.5pt',
+      spineSize: '7pt',
+      photoW: '26mm',
+      photoH: '34mm',
+      padTop: '7mm',
+      padRight: '10mm',
+      padBottom: '8mm',
+      padLeft: '8mm',
+      spineW: '9mm',
+      a4w: '210mm',
+      a4h: '297mm',
+      lineHeight: '1.55',
+      proseLineHeight: '1.52'
+    };
+
+    function mmToPt(mm) {
+      return (mm * 72 / 25.4).toFixed(1) + 'pt';
+    }
+
+    function verticalSpineHtml(text) {
+      return text.trim().toUpperCase().split('').map(ch =>
+        ch === ' ' ? '<span style="display:block;height:4pt;"></span>' : ch
+      ).join('<br>');
+    }
+
+    let editMode = false;
+    let autoSaveTimer = null;
+    let savedRange = null;
+
+    const BLOCK_TAGS = new Set(['P','DIV','H1','H2','H3','H4','ARTICLE','SECTION','LI','UL','OL']);
+
+    function pxToPt(px) {
+      return Math.round(px * 0.75 * 2) / 2;
+    }
+
+    function saveSelection() {
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0 || sel.isCollapsed) {
+        savedRange = null;
+        return;
+      }
+      savedRange = sel.getRangeAt(0).cloneRange();
+    }
+
+    function restoreSelection() {
+      if (!savedRange) return false;
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(savedRange);
+      return true;
+    }
+
+    function getEditableContext(preferSaved) {
+      const tryRange = (range) => {
+        if (!range || range.collapsed) return null;
+        const node = range.commonAncestorContainer;
+        const el = node.nodeType === 3 ? node.parentElement : node;
+        const editable = el && el.closest('[data-edit="true"]');
+        if (!editable || !editMode) return null;
+        return { range, editable };
+      };
+
+      if (preferSaved && savedRange) {
+        const ctx = tryRange(savedRange);
+        if (ctx) return ctx;
+      }
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return null;
+      return tryRange(sel.getRangeAt(0));
+    }
+
+    function fragmentHasBlocks(fragment) {
+      const walker = document.createTreeWalker(fragment, NodeFilter.SHOW_ELEMENT);
+      while (walker.nextNode()) {
+        if (BLOCK_TAGS.has(walker.currentNode.tagName)) return true;
+      }
+      return false;
+    }
+
+    function getRangeFontSizePt(range) {
+      let node = range.startContainer;
+      if (node.nodeType === 3) node = node.parentElement;
+      if (!node || node.nodeType !== 1) return 10.5;
+      return pxToPt(parseFloat(window.getComputedStyle(node).fontSize)) || 10.5;
+    }
+
+    function formatBold() {
+      const ctx = getEditableContext(true);
+      if (!ctx) {
+        setStatus('请先选中要加粗的文字', true);
+        return;
+      }
+      ctx.editable.focus();
+      if (savedRange) restoreSelection();
+      else {
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(ctx.range);
+      }
+      document.execCommand('bold', false, null);
+      scheduleAutoSave();
+      setStatus('已加粗', false);
+    }
+
+    function changeFontSize(delta) {
+      const ctx = getEditableContext(true);
+      if (!ctx) {
+        setStatus('请先选中要调整的文字', true);
+        return;
+      }
+      const next = Math.min(32, Math.max(7, +(getRangeFontSizePt(ctx.range) + delta).toFixed(1)));
+
+      ctx.editable.focus();
+      if (savedRange) restoreSelection();
+      else {
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(ctx.range);
+      }
+
+      const liveRange = window.getSelection().getRangeAt(0);
+      const fragment = liveRange.extractContents();
+      if (fragmentHasBlocks(fragment)) {
+        liveRange.insertNode(fragment);
+        setStatus('请在同一段落内选中文字', true);
+        return;
+      }
+      const span = document.createElement('span');
+      span.style.fontSize = next + 'pt';
+      span.appendChild(fragment);
+      liveRange.insertNode(span);
+
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      const newRange = document.createRange();
+      newRange.selectNodeContents(span);
+      sel.addRange(newRange);
+      savedRange = newRange.cloneRange();
+
+      scheduleAutoSave();
+      setStatus(`字号 ${next}pt`, false);
+    }
+
+    function bindFormatTools() {
+      document.querySelectorAll('.fmt-btn').forEach(btn => {
+        btn.addEventListener('mousedown', e => e.preventDefault());
+      });
+      document.getElementById('btn-bold').addEventListener('click', formatBold);
+      document.getElementById('btn-font-up').addEventListener('click', () => changeFontSize(1));
+      document.getElementById('btn-font-down').addEventListener('click', () => changeFontSize(-1));
+
+      document.addEventListener('selectionchange', () => {
+        if (editMode) saveSelection();
+      });
+    }
+
+    function toggleEdit(force) {
+      editMode = typeof force === 'boolean' ? force : !editMode;
+      document.body.classList.toggle('editing', editMode);
+      const btn = document.getElementById('btn-edit');
+      btn.textContent = editMode ? '✅ 编辑中' : '✏️ 编辑模式';
+      btn.classList.toggle('active', editMode);
+      document.querySelectorAll('[data-edit="true"]').forEach(el => {
+        el.contentEditable = editMode ? 'true' : 'false';
+        el.spellcheck = false;
+      });
+      if (editMode) setStatus('点击高亮区域即可编辑', true);
+    }
+
+    function setStatus(msg, warn) {
+      const el = document.getElementById('save-status');
+      el.textContent = msg;
+      el.classList.toggle('warn', !!warn);
+      if (!warn && msg.includes('已保存')) {
+        setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 3000);
+      }
+    }
+
+    async function saveDraft() {
+      await ensurePhotoDataUrl();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        html: document.getElementById('resume-root').innerHTML,
+        photo: document.getElementById('resume-photo').src,
+        savedAt: new Date().toISOString()
+      }));
+      setStatus('✓ 已保存 ' + new Date().toLocaleTimeString(), false);
+    }
+
+    async function ensurePhotoDataUrl() {
+      const img = document.getElementById('resume-photo');
+      if (!img || img.src.startsWith('data:')) return;
+      try { img.src = await fetchImageAsDataUrl(img.src); } catch (e) { console.warn(e); }
+    }
+
+    function loadDraft() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return false;
+      try {
+        const data = JSON.parse(raw);
+        document.getElementById('resume-root').innerHTML = data.html;
+        const photo = document.getElementById('resume-photo');
+        if (photo && data.photo) photo.src = data.photo;
+        bindAutoSave();
+        setStatus('已加载上次保存的内容', true);
+        return true;
+      } catch (e) { return false; }
+    }
+
+    function resetDraft() {
+      if (!confirm('确定恢复为默认内容？当前编辑将丢失。')) return;
+      localStorage.removeItem(STORAGE_KEY);
+      location.reload();
+    }
+
+    function bindAutoSave() {
+      document.querySelectorAll('[data-edit="true"]').forEach(el => {
+        el.removeEventListener('input', scheduleAutoSave);
+        el.addEventListener('input', scheduleAutoSave);
+      });
+    }
+
+    function scheduleAutoSave() {
+      clearTimeout(autoSaveTimer);
+      setStatus('编辑中…', true);
+      autoSaveTimer = setTimeout(() => saveDraft(), 800);
+    }
+
+    function changePhoto(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        document.getElementById('resume-photo').src = e.target.result;
+        saveDraft();
+        setStatus('照片已更新', false);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function exportPDF() {
+      // 兼容旧按钮：若已有当前版本 id，则打开服务端 PDF；否则走静默生成预览提示
+      if (currentDbMeta && currentDbMeta.id) {
+        window.open(apiUrl('/api/resumes/' + currentDbMeta.id + '/pdf'), '_blank');
+        return;
+      }
+      alert('请先「保存到数据库」，保存后会自动生成 PDF 并上传到服务器（不会弹出本机另存为）。');
+    }
+
+    function blobToBase64(blob) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const s = String(reader.result || '');
+          const i = s.indexOf(',');
+          resolve(i >= 0 ? s.slice(i + 1) : s);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    /** 浏览器内生成 PDF → 上传服务端，不弹本机保存对话框 */
+    async function generateAndUploadPdf(resumeId) {
+      if (typeof html2pdf === 'undefined') {
+        throw new Error('html2pdf 未加载');
+      }
+      const wasEdit = editMode;
+      if (editMode) toggleEdit(false);
+      await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 80)));
+      const element = document.getElementById('resume-root');
+      const opt = {
+        margin: [6, 6, 6, 6],
+        image: { type: 'jpeg', quality: 0.92 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['css', 'legacy'] },
+      };
+      const blob = await html2pdf().set(opt).from(element).outputPdf('blob');
+      const b64 = await blobToBase64(blob);
+      const res = await fetch(apiUrl('/api/resumes/' + resumeId + '/pdf'), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pdf_base64: b64 }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+      if (wasEdit) toggleEdit(true);
+      return data;
+    }
+
+    async function exportWord() {
+      if (editMode) toggleEdit(false);
+      setStatus('正在生成 Word…', true);
+      try {
+        const clone = document.getElementById('resume-root').cloneNode(true);
+        clone.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
+        await inlineImages(clone);
+        prepareWordLayout(clone);
+        inlineWordStyles(clone);
+
+        const bodyHtml = clone.innerHTML;
+        const wordCss = getWordExportCss();
+        const fullHtml = `<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="ProgId" content="Word.Document">
+<meta name="Generator" content="Microsoft Word 15">
+<!--[if gte mso 9]><xml>
+<w:WordDocument>
+  <w:View>Print</w:View>
+  <w:Zoom>100</w:Zoom>
+  <w:DoNotOptimizeForBrowser/>
+  <w:ValidateAgainstSchemas/>
+  <w:SaveIfXMLInvalid>false</w:SaveIfXMLInvalid>
+  <w:IgnoreMixedContent>false</w:IgnoreMixedContent>
+  <w:AlwaysShowPlaceholderText>false</w:AlwaysShowPlaceholderText>
+  <w:Compatibility>
+    <w:BreakWrappedTables/>
+    <w:SnapToGridInCell/>
+  </w:Compatibility>
+</w:WordDocument>
+</xml><![endif]-->
+<style>
+<!--
+${wordCss}
+-->
+</style>
+</head>
+<body lang="zh-CN" style="font-family:'Microsoft YaHei','PingFang SC',sans-serif;font-size:${TYPO.bodySize};color:${TYPO.bodyColor};line-height:${TYPO.lineHeight};margin:0;padding:0;mso-line-height-rule:exactly;">
+<div class="WordSection1" style="margin:0;padding:0;">
+${bodyHtml}
+</div>
+</body>
+</html>`;
+
+        const fileName = getFileName();
+        /* Word 原生 HTML（.doc）对样式支持远好于 html-docx-js */
+        downloadBlob(
+          new Blob(['\ufeff', fullHtml], { type: 'application/msword;charset=utf-8' }),
+          fileName + '.doc'
+        );
+        setStatus('Word 已导出 (.doc)，请用 Word 打开', false);
+      } catch (err) {
+        console.error(err);
+        alert('Word 导出失败：' + err.message);
+        setStatus('导出失败', true);
+      }
+    }
+
+    function appendStyle(el, style) {
+      const prev = el.getAttribute('style') || '';
+      const sep = prev && !/;\s*$/.test(prev) ? ';' : '';
+      el.setAttribute('style', prev + sep + style);
+    }
+
+    /** 将 flex/grid 布局转为 Word 友好的 table 结构（保留左侧竖条） */
+    function prepareWordLayout(root) {
+      root.querySelectorAll('.ci-icon').forEach(el => el.remove());
+
+      root.querySelectorAll('.page').forEach((page, idx, pages) => {
+        const spine = page.querySelector('.spine');
+        const inner = page.querySelector('.page-inner');
+        if (!inner) return;
+
+        const spineText = spine ? spine.textContent.trim() : 'Personal Resume';
+        if (spine) spine.remove();
+
+        const table = document.createElement('table');
+        table.setAttribute('class', 'word-page-table');
+        table.setAttribute('width', '100%');
+        table.setAttribute('cellspacing', '0');
+        table.setAttribute('cellpadding', '0');
+        table.innerHTML = `<tr>
+          <td class="word-spine-cell" valign="middle" align="center"></td>
+          <td class="word-content-cell" valign="top"></td>
+        </tr>`;
+
+        const spineCell = table.querySelector('.word-spine-cell');
+        const contentCell = table.querySelector('.word-content-cell');
+        spineCell.innerHTML = `<div class="word-spine-text">${verticalSpineHtml(spineText)}</div>`;
+        contentCell.appendChild(inner);
+
+        appendStyle(spineCell,
+          `width:${mmToPt(9)};background:${TYPO.blueMid};vertical-align:middle;text-align:center;padding:0;border:none;mso-shading:${TYPO.blueMid};`
+        );
+        appendStyle(contentCell,
+          `vertical-align:top;padding:${TYPO.padTop} ${TYPO.padRight} ${TYPO.padBottom} ${TYPO.padLeft};border:none;`
+        );
+        appendStyle(table, `width:100%;border-collapse:collapse;mso-table-lspace:0pt;mso-table-rspace:0pt;`);
+        appendStyle(page, `width:${TYPO.a4w};margin:0;page-break-after:auto;`);
+
+        page.innerHTML = '';
+        page.appendChild(table);
+      });
+
+      root.querySelectorAll('.resume-header').forEach(header => {
+        const left = header.querySelector('.header-left');
+        const photo = header.querySelector('.photo-wrap');
+        if (!left || !photo) return;
+        const table = document.createElement('table');
+        table.setAttribute('class', 'word-header-table');
+        table.setAttribute('width', '100%');
+        table.innerHTML = `<tr>
+          <td valign="top" style="width:72%;">${left.outerHTML}</td>
+          <td valign="top" align="right" style="width:28%;">${photo.outerHTML}</td>
+        </tr>`;
+        header.innerHTML = '';
+        header.appendChild(table);
+      });
+
+      root.querySelectorAll('.contact-grid').forEach(grid => {
+        const items = Array.from(grid.querySelectorAll('.contact-item'));
+        if (items.length < 2) return;
+        const table = document.createElement('table');
+        table.setAttribute('width', '100%');
+        table.setAttribute('class', 'word-contact-table');
+        for (let i = 0; i < items.length; i += 2) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td style="width:50%;">${items[i].outerHTML}</td>
+            <td style="width:50%;">${items[i + 1] ? items[i + 1].outerHTML : ''}</td>`;
+          table.appendChild(tr);
+        }
+        grid.replaceWith(table);
+      });
+
+      root.querySelectorAll('.entry-title').forEach(title => {
+        const org = title.querySelector('.org');
+        const role = title.querySelector('.role');
+        const sep = title.querySelector('.sep');
+        const date = title.querySelector('.date');
+        if (sep) sep.remove();
+        const table = document.createElement('table');
+        table.setAttribute('width', '100%');
+        table.setAttribute('class', 'word-entry-table');
+        table.innerHTML = `<tr>
+          <td style="font-weight:700;color:${TYPO.blueDeep};font-size:${TYPO.orgSize};">${org ? org.innerHTML : ''}${role ? ' | ' + role.textContent : ''}</td>
+          <td align="right" style="color:${TYPO.blueMid};font-size:${TYPO.dateSize};font-weight:600;white-space:nowrap;">${date ? date.textContent : ''}</td>
+        </tr>`;
+        title.replaceWith(table);
+      });
+
+      root.querySelectorAll('.tl-head').forEach(head => {
+        const icon = head.querySelector('.tl-icon');
+        const title = head.querySelector('.tl-title');
+        if (icon) icon.remove();
+        if (title) {
+          appendStyle(title,
+            `font-size:${TYPO.titleSize};font-weight:bold;color:${TYPO.blueDeep};border-bottom:2pt solid ${TYPO.blueMid};padding-bottom:3pt;margin:0 0 5pt 0;font-family:Microsoft YaHei,sans-serif;letter-spacing:1px;`
+          );
+        }
+        const line = head.querySelector('.tl-line');
+        if (line) line.remove();
+      });
+    }
+
+    /** 给关键节点追加内联样式（与网页 CSS 数值一致） */
+    function inlineWordStyles(root) {
+      const T = TYPO;
+      const map = [
+        ['.page-inner', `padding:0;`],
+        ['.resume-header', `border-bottom:1pt solid ${T.line};padding-bottom:8pt;margin-bottom:8pt;`],
+        ['.name-row h1', `font-size:${T.nameSize};font-weight:800;color:${T.ink};font-family:Microsoft YaHei,PingFang SC,sans-serif;letter-spacing:${T.nameSpacing};margin:0 0 4pt 0;line-height:1.1;`],
+        ['.field-label', `font-weight:700;color:${T.ink};`],
+        ['.prose-block', `font-size:${T.proseSize};color:${T.bodyColor};line-height:${T.proseLineHeight};text-align:justify;margin:0 0 2pt 0;font-family:Microsoft YaHei,sans-serif;`],
+        ['.work-item .item-title', `font-weight:700;font-size:${T.proseSize};color:${T.ink};margin:0 0 1pt 0;font-family:Microsoft YaHei,sans-serif;`],
+        ['.work-item .item-body', `font-size:${T.proseSize};color:${T.bodyColor};line-height:${T.proseLineHeight};text-align:justify;margin:0 0 3pt 0;font-family:Microsoft YaHei,sans-serif;`],
+        ['.skills-prose p', `font-size:${T.proseSize};color:${T.bodyColor};line-height:${T.proseLineHeight};text-align:justify;margin:0 0 2pt 0;font-family:Microsoft YaHei,sans-serif;`],
+        ['.summary', `font-size:${T.proseSize};color:${T.bodyColor};background:${T.bluePale};border-left:3pt solid ${T.blueMid};padding:6pt 10pt;line-height:${T.proseLineHeight};text-align:justify;font-family:Microsoft YaHei,sans-serif;`],
+        ['.summary p', 'margin:0 0 2pt 0;'],
+        ['.photo-wrap img', `width:${T.photoW};height:${T.photoH};border:2pt solid ${T.blueLight};display:block;`],
+        ['.contact-item', `font-size:${T.contactSize};color:${T.bodyColor};font-family:Microsoft YaHei,sans-serif;`],
+        ['.contact-item b', `color:${T.blueDeep};font-weight:600;`],
+        ['.tl-section', 'margin-bottom:8pt;'],
+        ['.entry', 'margin-bottom:6pt;'],
+        ['.timeline', 'padding-left:0;margin:0;'],
+        ['.word-spine-text', `font-size:${T.spineSize};font-weight:700;color:#ffffff;letter-spacing:3px;font-family:Arial,sans-serif;line-height:1.2;text-transform:uppercase;`],
+        ['.word-page-table', 'border-collapse:collapse;width:100%;mso-table-lspace:0pt;mso-table-rspace:0pt;'],
+        ['.word-spine-cell', `width:${mmToPt(9)};background:${T.blueMid};vertical-align:middle;text-align:center;padding:0;`],
+        ['.word-content-cell', `vertical-align:top;padding:${T.padTop} ${T.padRight} ${T.padBottom} ${T.padLeft};`],
+        ['.word-header-table', 'border-collapse:collapse;width:100%;mso-table-lspace:0pt;mso-table-rspace:0pt;'],
+        ['.word-header-table td', 'border:none;padding:2pt 4pt;vertical-align:top;'],
+        ['.word-contact-table', 'border-collapse:collapse;width:100%;mso-table-lspace:0pt;mso-table-rspace:0pt;'],
+        ['.word-contact-table td', 'border:none;padding:2pt 4pt;vertical-align:top;'],
+        ['.word-entry-table', 'border-collapse:collapse;width:100%;mso-table-lspace:0pt;mso-table-rspace:0pt;'],
+        ['.word-entry-table td', 'border:none;padding:2pt 4pt;vertical-align:top;'],
+        ['a', `color:${T.blueMid};text-decoration:underline;`]
+      ];
+      map.forEach(([sel, style]) => {
+        root.querySelectorAll(sel).forEach(el => appendStyle(el, style));
+      });
+    }
+
+    function getWordExportCss() {
+      const T = TYPO;
+      return `
+        @page WordSection1 {
+          size: 595.3pt 841.9pt;
+          margin: 0;
+        }
+        div.WordSection1 { page: WordSection1; margin: 0; padding: 0; }
+        body {
+          font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+          font-size: ${T.bodySize}; color: ${T.bodyColor}; line-height: ${T.lineHeight};
+          margin: 0; padding: 0;
+        }
+        p { margin: 0 0 2pt 0; mso-para-margin: 0 0 2pt 0; font-size: ${T.proseSize}; }
+        table { border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        td { vertical-align: top; }
+        .page { width: ${T.a4w}; margin: 0; page-break-after: auto; }
+        .page-inner { padding: 0; }
+        .resume-header {
+          border-bottom: 1pt solid ${T.line};
+          padding-bottom: 8pt; margin-bottom: 8pt;
+        }
+        .name-row h1 {
+          font-size: ${T.nameSize}; font-weight: 800; color: ${T.ink};
+          font-family: "Microsoft YaHei", sans-serif;
+          letter-spacing: ${T.nameSpacing};
+        }
+        .tl-title {
+          font-size: ${T.titleSize}; font-weight: 800; color: ${T.blueDeep};
+          border-bottom: 2pt solid ${T.blueMid};
+          padding-bottom: 3pt; margin: 0 0 5pt 0;
+          letter-spacing: 1px;
+        }
+        .tl-section { margin-bottom: 8pt; }
+        .entry { margin-bottom: 6pt; }
+        .field-label { font-weight: 700; color: ${T.ink}; }
+        .prose-block {
+          font-size: ${T.proseSize}; color: ${T.bodyColor}; line-height: ${T.proseLineHeight};
+          text-align: justify; margin: 0 0 2pt 0;
+        }
+        .work-item .item-title { font-weight: 700; font-size: ${T.proseSize}; color: ${T.ink}; }
+        .work-item .item-body { font-size: ${T.proseSize}; text-align: justify; line-height: ${T.proseLineHeight}; }
+        .skills-prose p { font-size: ${T.proseSize}; text-align: justify; line-height: ${T.proseLineHeight}; margin: 0 0 2pt 0; }
+        .summary {
+          background: ${T.bluePale}; border-left: 3pt solid ${T.blueMid};
+          padding: 6pt 10pt; text-align: justify; line-height: ${T.proseLineHeight};
+          font-size: ${T.proseSize};
+        }
+        .word-spine-cell { background: ${T.blueMid}; width: ${mmToPt(9)}; }
+        .word-spine-text {
+          font-size: ${T.spineSize}; font-weight: 700; color: #ffffff;
+          letter-spacing: 3px; text-transform: uppercase;
+        }
+        .word-header-table, .word-contact-table, .word-entry-table { width: 100%; }
+        .word-header-table td, .word-contact-table td, .word-entry-table td {
+          border: none; padding: 2pt 4pt;
+        }
+        a { color: ${T.blueMid}; text-decoration: underline; }
+      `;
+    }
+
+    async function inlineImages(root) {
+      for (const img of root.querySelectorAll('img')) {
+        const src = img.getAttribute('src');
+        if (!src || src.startsWith('data:')) continue;
+        try { img.setAttribute('src', await fetchImageAsDataUrl(src)); } catch (e) {}
+      }
+    }
+
+    function fetchImageAsDataUrl(url) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          const c = document.createElement('canvas');
+          c.width = img.naturalWidth; c.height = img.naturalHeight;
+          c.getContext('2d').drawImage(img, 0, 0);
+          resolve(c.toDataURL('image/png'));
+        };
+        img.onerror = () => url.startsWith('data:') ? resolve(url) : reject(new Error(url));
+        img.src = url;
+      });
+    }
+
+    function collectStyles() {
+      return Array.from(document.querySelectorAll('style')).map(s => s.textContent).join('\n');
+    }
+
+    function exportHTML() {
+      saveDraft();
+      downloadBlob(new Blob([`<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>${getFileName()}</title><style>${collectStyles()}</style></head><body>${document.getElementById('resume-root').outerHTML}</body></html>`], { type: 'text/html;charset=utf-8' }), getFileName() + '.html');
+      setStatus('HTML 已导出', false);
+    }
+
+    function getFileName() {
+      const nameEl = document.querySelector('.name-row h1');
+      return (nameEl ? nameEl.textContent.trim() : '简历') + '-简历';
+    }
+
+    function downloadBlob(blob, filename) {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    document.addEventListener('keydown', e => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); saveDraft(); }
+      if (editMode && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        formatBold();
+      }
+      if (e.key === 'Escape') {
+        closeModal('modal-save-db');
+        closeModal('modal-history');
+      }
+    });
+
+    // ---------- MySQL 持久化：保存 / 历史 ----------
+    const API_BASE = '';
+    let currentDbMeta = null; // { id, company, version_tag, saved_at }
+    const pageParams = new URLSearchParams(location.search);
+    let linkedJobId = pageParams.get('job_id') ? Number(pageParams.get('job_id')) : null;
+    if (linkedJobId && Number.isNaN(linkedJobId)) linkedJobId = null;
+
+    function apiUrl(path) {
+      return API_BASE + path;
+    }
+
+    function goBackToJobs() {
+      location.href = '/jobs.html' + (linkedJobId ? ('#job-' + linkedJobId) : '');
+    }
+
+    function closeModal(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('open');
+    }
+
+    function openModal(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.add('open');
+    }
+
+    function pad2(n) { return String(n).padStart(2, '0'); }
+
+    function toDatetimeLocalValue(d) {
+      return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate())
+        + 'T' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+    }
+
+    function formatDbTime(raw) {
+      if (!raw) return '';
+      return String(raw).replace('T', ' ').slice(0, 19);
+    }
+
+    function suggestNextVersion(company, list) {
+      const tags = (list || [])
+        .filter(x => x.company === company)
+        .map(x => x.version_tag);
+      let max = 0;
+      tags.forEach(t => {
+        const m = String(t).match(/^v(\d+)$/i);
+        if (m) max = Math.max(max, parseInt(m[1], 10));
+      });
+      return 'v' + (max + 1 || 1);
+    }
+
+    function collectStyleCss() {
+      return Array.from(document.querySelectorAll('style')).map(s => s.textContent).join('\n');
+    }
+
+    function extractCandidateMeta() {
+      const nameEl = document.querySelector('.name-row h1');
+      const badge = document.querySelector('.job-badge') || document.querySelector('.name-row span');
+      return {
+        candidate_name: nameEl ? nameEl.textContent.trim() : null,
+        job_intent: badge ? badge.textContent.trim() : null
+      };
+    }
+
+    /** 轻量模块摘要（检索用）；样式还原仍靠 html_snapshot */
+    function extractModulesJson() {
+      const skills = Array.from(document.querySelectorAll('.skills-prose p')).map((p, i) => {
+        const label = p.querySelector('.field-label');
+        return {
+          sort_order: i,
+          category: label ? label.textContent.replace(/[：:]\s*$/, '') : ('段落' + (i + 1)),
+          content: p.textContent.trim()
+        };
+      });
+      const work = Array.from(document.querySelectorAll('.tl-section')).filter(sec => {
+        const t = sec.querySelector('.tl-title');
+        return t && t.textContent.includes('工作经历');
+      }).flatMap(sec => Array.from(sec.querySelectorAll('article.entry')).map((art, i) => {
+        const org = art.querySelector('.org');
+        const role = art.querySelector('.role');
+        const date = art.querySelector('.date');
+        const items = Array.from(art.querySelectorAll('.work-item')).map((wi, j) => ({
+          sort_order: j,
+          title: (wi.querySelector('.item-title') || {}).textContent || '',
+          body: (wi.querySelector('.item-body') || {}).textContent || ''
+        }));
+        return {
+          sort_order: i,
+          company: org ? org.textContent.trim() : '',
+          role: role ? role.textContent.trim() : '',
+          date_range: date ? date.textContent.trim() : '',
+          items
+        };
+      }));
+      return { skills, work };
+    }
+
+    function setVersionMetaBar(meta) {
+      currentDbMeta = meta;
+      const bar = document.getElementById('version-meta-bar');
+      if (!bar) return;
+      if (!meta) {
+        bar.classList.remove('show');
+        bar.textContent = '';
+        return;
+      }
+      bar.textContent = `当前版本：${meta.company} · ${meta.version_tag} · ${formatDbTime(meta.saved_at)}（可继续编辑后另存为新版本）`;
+      bar.classList.add('show');
+    }
+
+    async function openSaveDbModal() {
+      openModal('modal-save-db');
+      const timeInput = document.getElementById('save-time');
+      if (timeInput && !timeInput.value) timeInput.value = toDatetimeLocalValue(new Date());
+      if (currentDbMeta) {
+        document.getElementById('save-company').value = currentDbMeta.company || '';
+        try {
+          const list = await fetch(apiUrl('/api/resumes')).then(r => r.json());
+          document.getElementById('save-version').value = suggestNextVersion(currentDbMeta.company, list);
+        } catch (_) {
+          document.getElementById('save-version').value = 'v2';
+        }
+      } else if (!document.getElementById('save-version').value) {
+        document.getElementById('save-version').value = 'v1';
+      }
+    }
+
+    async function confirmSaveToDb() {
+      const company = document.getElementById('save-company').value.trim();
+      const version_tag = document.getElementById('save-version').value.trim();
+      const saved_at = document.getElementById('save-time').value.trim();
+      const note = document.getElementById('save-note').value.trim();
+      if (!company) { alert('请填写面试公司'); return; }
+      if (!version_tag) { alert('请填写版本号'); return; }
+      if (!saved_at) { alert('请填写时间'); return; }
+
+      setStatus('正在保存到数据库…', true);
+      try {
+        await ensurePhotoDataUrl();
+        const meta = extractCandidateMeta();
+        const photo = document.getElementById('resume-photo');
+        const payload = {
+          company,
+          version_tag,
+          saved_at: saved_at.replace('T', ' ') + (saved_at.length === 16 ? ':00' : ''),
+          note: note || null,
+          html_snapshot: document.getElementById('resume-root').innerHTML,
+          style_css: collectStyleCss(),
+          photo_data_url: photo && photo.src ? photo.src : null,
+          candidate_name: meta.candidate_name,
+          job_intent: meta.job_intent,
+          modules_json: extractModulesJson(),
+          job_id: linkedJobId || null
+        };
+        const res = await fetch(apiUrl('/api/resumes'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+        await saveDraft();
+        setVersionMetaBar({
+          id: data.id,
+          company: data.company,
+          version_tag: data.version_tag,
+          saved_at
+        });
+        closeModal('modal-save-db');
+        currentDbMeta = {
+          id: data.id,
+          company: data.company,
+          version_tag: data.version_tag,
+          saved_at
+        };
+        setStatus(`✓ 已入库 ${data.company} / ${data.version_tag}，正在生成 PDF…`, true);
+        try {
+          const pdfRes = await generateAndUploadPdf(data.id);
+          setStatus(
+            `✓ 已入库 ${data.company} / ${data.version_tag}，PDF 已上传服务端（${pdfRes.bytes || ''} 字节）` +
+              (linkedJobId ? ' · 已关联岗位' : ''),
+            false
+          );
+        } catch (pdfErr) {
+          console.error(pdfErr);
+          setStatus(
+            `✓ 已入库，但 PDF 生成失败：${pdfErr.message}（发信将回退为 HTML 附件）`,
+            true
+          );
+        }
+        if (linkedJobId && confirm('已保存并关联岗位。是否返回岗位列表？')) {
+          goBackToJobs();
+          return;
+        }
+      } catch (err) {
+        console.error(err);
+        alert('保存失败：' + err.message + '\n\n请确认已 cargo run 启动服务，且 MySQL 可用。');
+        setStatus('数据库保存失败', true);
+      }
+    }
+
+    async function openHistoryModal() {
+      openModal('modal-history');
+      await refreshHistoryList();
+    }
+
+    async function refreshHistoryList() {
+      const listEl = document.getElementById('history-list');
+      const emptyEl = document.getElementById('history-empty');
+      const loading = document.getElementById('history-loading');
+      listEl.innerHTML = '';
+      emptyEl.style.display = 'none';
+      loading.style.display = 'block';
+      try {
+        const res = await fetch(apiUrl('/api/resumes'));
+        const data = await res.json().catch(() => ([]));
+        if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+        loading.style.display = 'none';
+        if (!Array.isArray(data) || data.length === 0) {
+          emptyEl.style.display = 'block';
+          return;
+        }
+        data.forEach(item => {
+          const li = document.createElement('li');
+          li.className = 'history-item';
+          li.innerHTML = `
+            <div>
+              <div class="history-title">${escapeHtml(item.company)} · ${escapeHtml(item.version_tag)}</div>
+              <div class="history-meta">
+                时间 ${escapeHtml(formatDbTime(item.saved_at))}
+                ${item.candidate_name ? ' · ' + escapeHtml(item.candidate_name) : ''}
+                ${item.job_intent ? ' · ' + escapeHtml(item.job_intent) : ''}
+                ${item.note ? ' · ' + escapeHtml(item.note) : ''}
+              </div>
+            </div>
+            <div class="history-actions">
+              <button type="button" class="btn-load" data-id="${item.id}">加载编辑</button>
+              <button type="button" class="btn-del" data-del="${item.id}">删除</button>
+            </div>`;
+          listEl.appendChild(li);
+        });
+        listEl.querySelectorAll('[data-id]').forEach(btn => {
+          btn.addEventListener('click', () => loadResumeFromDb(Number(btn.getAttribute('data-id'))));
+        });
+        listEl.querySelectorAll('[data-del]').forEach(btn => {
+          btn.addEventListener('click', () => deleteResumeFromDb(Number(btn.getAttribute('data-del'))));
+        });
+      } catch (err) {
+        loading.style.display = 'none';
+        emptyEl.style.display = 'block';
+        emptyEl.textContent = '加载失败：' + err.message + '（请确认服务已启动）';
+      }
+    }
+
+    function escapeHtml(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    async function loadResumeFromDb(id) {
+      setStatus('正在加载历史简历…', true);
+      try {
+        const res = await fetch(apiUrl('/api/resumes/' + id));
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+        document.getElementById('resume-root').innerHTML = data.html_snapshot;
+        const photo = document.getElementById('resume-photo');
+        if (photo && data.photo_data_url) photo.src = data.photo_data_url;
+        bindAutoSave();
+        if (editMode) {
+          document.querySelectorAll('[data-edit="true"]').forEach(el => {
+            el.contentEditable = 'true';
+            el.spellcheck = false;
+          });
+        }
+        await saveDraft();
+        setVersionMetaBar({
+          id: data.id,
+          company: data.company,
+          version_tag: data.version_tag,
+          saved_at: data.saved_at
+        });
+        closeModal('modal-history');
+        setStatus(`已加载 ${data.company} / ${data.version_tag}，可编辑后另存新版本`, false);
+      } catch (err) {
+        console.error(err);
+        alert('加载失败：' + err.message);
+        setStatus('加载失败', true);
+      }
+    }
+
+    async function deleteResumeFromDb(id) {
+      if (!confirm('确定删除该历史版本？此操作不可恢复。')) return;
+      try {
+        const res = await fetch(apiUrl('/api/resumes/' + id), { method: 'DELETE' });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+        if (currentDbMeta && currentDbMeta.id === id) setVersionMetaBar(null);
+        await refreshHistoryList();
+        setStatus('已删除该版本', false);
+      } catch (err) {
+        alert('删除失败：' + err.message);
+      }
+    }
+
+    async function bootFromQuery() {
+      const resumeId = pageParams.get('id') || pageParams.get('resume_id');
+      const companyQ = pageParams.get('company');
+      const printMode = pageParams.get('print') === '1';
+      const viewMode = pageParams.get('view') === '1';
+
+      if (companyQ) {
+        const el = document.getElementById('save-company');
+        if (el) el.value = companyQ;
+      }
+      if (linkedJobId) {
+        const bar = document.getElementById('version-meta-bar');
+        if (bar && !resumeId) {
+          bar.style.display = 'block';
+          bar.textContent = `岗位关联模式 · job_id=${linkedJobId} · 保存后自动绑定，可用「返回岗位列表」`;
+        }
+      }
+
+      if (resumeId) {
+        try {
+          const res = await fetch(apiUrl('/api/resumes/' + resumeId));
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+          const root = document.getElementById('resume-root');
+          if (root && data.html_snapshot) root.innerHTML = data.html_snapshot;
+          if (data.photo_data_url) {
+            const img = document.getElementById('resume-photo');
+            if (img) img.src = data.photo_data_url;
+          }
+          currentDbMeta = {
+            id: data.id,
+            company: data.company,
+            version_tag: data.version_tag,
+            saved_at: data.saved_at
+          };
+          if (data.job_id) linkedJobId = data.job_id;
+          setVersionMetaBar(currentDbMeta);
+          const sc = document.getElementById('save-company');
+          if (sc) sc.value = data.company || '';
+          setStatus(`已加载 ${data.company} / ${data.version_tag}`, false);
+        } catch (err) {
+          setStatus('加载简历失败：' + err.message, true);
+        }
+      }
+
+      if (viewMode || printMode) {
+        toggleEdit(false);
+        if (printMode) setTimeout(() => window.print(), 600);
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const hasRemote = !!(pageParams.get('id') || pageParams.get('resume_id'));
+      if (!hasRemote) loadDraft();
+      bindAutoSave();
+      bindFormatTools();
+      toggleEdit(true);
+      const t = document.getElementById('save-time');
+      if (t) t.value = toDatetimeLocalValue(new Date());
+      bootFromQuery();
+    });
+  </script>
+</body>
+</html>
