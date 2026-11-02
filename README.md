@@ -9,7 +9,15 @@
 
 ```bash
 cd deployProject/offer
-cp .env.example .env   # 填写 DATABASE_URL、SMTP_*
+
+# 1) 环境变量：仓库里已有可用 .env 时跳过；没有就复制模板再填
+[ -f .env ] || cp .env.example .env    # DATABASE_URL / SMTP_* 必填
+
+# 2) 首次：建库 + 建表（MySQL 8，库名 offer）
+mysql -uroot -p -e "CREATE DATABASE IF NOT EXISTS offer DEFAULT CHARSET utf8mb4;"
+mysql -uroot -p offer < sql/schema.sql
+
+# 3) 启动（空库首次启动会自动从 data/jobs_seed.json 导入种子岗位）
 cargo run
 ```
 
@@ -20,6 +28,8 @@ cargo run
 | `/` | 首页路由 |
 | `/resume.html` | 简历模块 |
 | `/jobs.html` | 岗位收集模块 |
+
+后端监听 `HOST=0.0.0.0`、`PORT=4000`（`src/main.rs` 的默认值）。`cp .env.example .env` 后模板里的 `HOST=127.0.0.1` 只允许本机访问，需要局域网或隧道访问时改成 `0.0.0.0`。
 
 公网隧道（Sealtun `offer-ui` → 本地 4000）如已配置可继续用。
 
@@ -33,12 +43,12 @@ SMTP_PORT=465
 SMTP_USER=你的QQ号@qq.com
 SMTP_PASS=授权码
 SMTP_FROM=你的QQ号@qq.com
-TEST_EMAIL_TO=9237499851@qq.com
+TEST_EMAIL_TO=923749851@qq.com
 ```
 
 | 按钮 | 行为 |
 |------|------|
-| **测试邮件发送** | 固定发到 `TEST_EMAIL_TO`（默认 `9237499851@qq.com`），验证 SMTP |
+| **测试邮件发送** | 固定发到 `TEST_EMAIL_TO`（默认 `923749851@qq.com`，与 `src/email.rs` 一致），验证 SMTP |
 | **发送邮件** | 发到该公司邮箱；需输入「确认发送」二次确认 |
 
 两按钮独立，避免误把测试邮件打到公司。
